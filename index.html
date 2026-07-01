@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Morph CRM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+/* ─── CONFIG: preencha sua URL e chave anon do Supabase ─── */
+/*  Edite as constantes SUPABASE_URL e SUPABASE_KEY no <script> abaixo  */
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;font-family:'Inter',sans-serif;background:#111;color:#fff;-webkit-font-smoothing:antialiased;}
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:#161616;}
+::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:4px;}
+
+/* ── LAYOUT ── */
+#app{display:flex;height:100vh;overflow:hidden;}
+.sidebar{width:210px;flex-shrink:0;background:#151515;border-right:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;padding:20px 0 14px;overflow-y:auto;}
+.content{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.topbar{flex-shrink:0;padding:13px 24px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;background:#111;}
+.page{flex:1;overflow-y:auto;padding:24px;}
+
+/* ── LOGIN ── */
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#111;}
+.login-box{background:#191919;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:40px 36px;width:400px;max-width:92vw;}
+.login-logo{display:flex;align-items:center;gap:10px;margin-bottom:32px;justify-content:center;}
+.login-logo .sq{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#E8490F,#F5A623);box-shadow:0 3px 14px rgba(232,73,15,.4);}
+.login-logo span{font-family:'Manrope',sans-serif;font-weight:700;font-size:22px;}
+.login-title{font-family:'Manrope',sans-serif;font-weight:800;font-size:20px;margin-bottom:6px;text-align:center;}
+.login-sub{font-size:13px;color:#5A5855;text-align:center;margin-bottom:28px;}
+.field{margin-bottom:14px;}
+.field label{display:block;font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:#4A4845;margin-bottom:5px;}
+.field input{width:100%;background:#222;border:1px solid rgba(255,255,255,.09);border-radius:9px;color:#fff;font-size:14px;padding:10px 13px;outline:none;transition:border-color .15s;}
+.field input:focus{border-color:rgba(232,73,15,.5);}
+.login-err{background:rgba(255,107,107,.1);border:1px solid rgba(255,107,107,.2);border-radius:8px;padding:10px 13px;font-size:13px;color:#FF6B6B;margin-bottom:14px;display:none;}
+.btn-login{width:100%;padding:12px;border:none;border-radius:9px;background:linear-gradient(135deg,#E8490F,#F5A623);color:#fff;font-weight:700;font-size:14px;cursor:pointer;transition:all .15s;box-shadow:0 4px 16px rgba(232,73,15,.35);}
+.btn-login:hover{box-shadow:0 6px 22px rgba(232,73,15,.5);transform:translateY(-1px);}
+.btn-login:disabled{opacity:.6;cursor:default;transform:none;}
+
+/* ── SIDEBAR ── */
+.logo{display:flex;align-items:center;gap:9px;padding:0 18px;margin-bottom:24px;}
+.logo .sq{width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,#E8490F,#F5A623);box-shadow:0 3px 10px rgba(232,73,15,.4);flex-shrink:0;}
+.logo span{font-family:'Manrope',sans-serif;font-weight:600;font-size:17px;}
+.nav-sec{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:#333;padding:0 18px;margin:12px 0 3px;}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 18px;font-size:12.5px;font-weight:500;color:#5A5857;border-left:2px solid transparent;cursor:pointer;transition:all .14s;}
+.nav-item:hover{background:rgba(255,255,255,.03);color:#aaa;}
+.nav-item.active{color:#E8490F;border-left-color:#E8490F;background:rgba(232,73,15,.06);}
+.nav-item i{width:14px;height:14px;flex-shrink:0;}
+.sidebar-foot{margin-top:auto;padding:12px 18px 0;border-top:1px solid rgba(255,255,255,.05);display:flex;flex-direction:column;gap:8px;}
+.user-info{font-size:11.5px;color:#4A4845;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.btn-logout{display:flex;align-items:center;gap:7px;font-size:11.5px;color:#4A4845;cursor:pointer;padding:5px 0;transition:color .14s;border:none;background:none;}
+.btn-logout:hover{color:#FF6B6B;}
+.btn-logout i{width:13px;height:13px;}
+
+/* ── TOPBAR ── */
+.page-title{font-family:'Manrope',sans-serif;font-weight:700;font-size:15px;}
+.topbar-right{display:flex;align-items:center;gap:9px;}
+
+/* ── CARDS ── */
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;}
+.g2{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:14px;}
+.card{background:#191919;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px;}
+.c-lbl{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:#4A4845;margin-bottom:6px;}
+.c-val{font-family:'Manrope',sans-serif;font-weight:800;font-size:26px;letter-spacing:-.02em;}
+.c-sub{font-size:11px;color:#4A4845;margin-top:3px;}
+.icon-box{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;}
+.icon-box i{width:15px;height:15px;}
+.ib-o{background:rgba(232,73,15,.14);color:#E8490F;}
+.ib-g{background:rgba(46,204,113,.14);color:#2ECC71;}
+.ib-y{background:rgba(245,166,35,.14);color:#F5A623;}
+.ib-b{background:rgba(58,134,255,.14);color:#3A86FF;}
+.ib-r{background:rgba(255,107,107,.14);color:#FF6B6B;}
+.ib-p{background:rgba(155,89,182,.14);color:#9B59B6;}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:100px;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:500;white-space:nowrap;}
+.bp{background:rgba(58,134,255,.13);color:#3A86FF;border:1px solid rgba(58,134,255,.22);}
+.bn{background:rgba(232,73,15,.13);color:#E8490F;border:1px solid rgba(232,73,15,.22);}
+.bpr{background:rgba(245,166,35,.13);color:#F5A623;border:1px solid rgba(245,166,35,.22);}
+.bf{background:rgba(46,204,113,.13);color:#2ECC71;border:1px solid rgba(46,204,113,.22);}
+.bpe{background:rgba(255,107,107,.13);color:#FF6B6B;border:1px solid rgba(255,107,107,.22);}
+.bgr{background:rgba(255,255,255,.06);color:#6A6865;border:1px solid rgba(255,255,255,.1);}
+.bh{background:rgba(155,89,182,.13);color:#9B59B6;border:1px solid rgba(155,89,182,.22);}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;font-family:'Inter',sans-serif;font-weight:600;font-size:12px;cursor:pointer;border:none;transition:all .14s;}
+.btn i{width:13px;height:13px;}
+.btn-p{background:linear-gradient(135deg,#E8490F,#F5A623);color:#fff;box-shadow:0 3px 12px rgba(232,73,15,.3);}
+.btn-p:hover{box-shadow:0 5px 18px rgba(232,73,15,.45);transform:translateY(-1px);}
+.btn-gh{background:rgba(255,255,255,.06);color:#888;border:1px solid rgba(255,255,255,.09);}
+.btn-gh:hover{background:rgba(255,255,255,.1);color:#fff;}
+.btn-danger{background:rgba(255,107,107,.1);color:#FF6B6B;border:1px solid rgba(255,107,107,.2);}
+.btn-danger:hover{background:rgba(255,107,107,.2);}
+.btn-sm{padding:6px 10px;font-size:11px;}
+.btn-sm i{width:12px;height:12px;}
+.btn-xs{padding:4px 8px;font-size:10.5px;}
+.btn-xs i{width:11px;height:11px;}
+
+/* ── INPUTS ── */
+input[type=text],input[type=email],input[type=number],input[type=date],input[type=password],select,textarea{
+  background:#222;border:1px solid rgba(255,255,255,.09);border-radius:8px;color:#fff;
+  font-family:'Inter',sans-serif;font-size:13px;padding:8px 11px;width:100%;outline:none;transition:border-color .14s;
+}
+input:focus,select:focus,textarea:focus{border-color:rgba(232,73,15,.5);}
+select{-webkit-appearance:none;appearance:none;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%234A4845' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;padding-right:26px;}
+select option{background:#1a1a1a;}
+textarea{resize:vertical;min-height:70px;}
+.f-label{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#4A4845;margin-bottom:4px;display:block;}
+.f-group{margin-bottom:13px;}
+.f-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;appearance:none;}
+
+/* ── MODAL ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;}
+.overlay.open{display:flex;}
+.modal{background:#1a1a1a;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:24px;width:520px;max-width:100%;max-height:90vh;overflow-y:auto;}
+.modal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.modal-title{font-family:'Manrope',sans-serif;font-weight:700;font-size:16px;}
+.modal-close{cursor:pointer;color:#4A4845;transition:color .14s;background:none;border:none;}
+.modal-close:hover{color:#fff;}
+.modal-close i{width:18px;height:18px;}
+.modal-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;}
+
+hr.d{border:none;border-top:1px solid rgba(255,255,255,.06);margin:12px 0;}
+
+/* ── TABLE ── */
+.tbl-wrap{background:#191919;border:1px solid rgba(255,255,255,.07);border-radius:12px;overflow:hidden;}
+.tbl-toolbar{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06);flex-wrap:wrap;}
+.search-inp{background:#222;border:1px solid rgba(255,255,255,.09);border-radius:8px;color:#fff;font-size:12.5px;padding:7px 12px 7px 33px;outline:none;width:220px;transition:border-color .14s;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='13' viewBox='0 0 24 24' fill='none' stroke='%234A4845' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'%3E%3C/circle%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'%3E%3C/line%3E%3C/svg%3E");background-repeat:no-repeat;background-position:10px center;}
+.search-inp:focus{border-color:rgba(232,73,15,.4);}
+table{width:100%;border-collapse:collapse;}
+th{text-align:left;padding:10px 16px;font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#3A3835;border-bottom:1px solid rgba(255,255,255,.06);}
+td{padding:11px 16px;font-size:13px;color:#C0BEBB;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,.02);cursor:pointer;}
+.td-name{font-weight:600;color:#fff;}
+.td-actions{display:flex;gap:6px;opacity:0;transition:opacity .14s;}
+tr:hover .td-actions{opacity:1;}
+
+/* ── KANBAN ── */
+.kanban{display:flex;gap:14px;overflow-x:auto;padding-bottom:16px;align-items:flex-start;}
+.k-col{flex-shrink:0;width:240px;background:#191919;border:1px solid rgba(255,255,255,.07);border-radius:12px;overflow:hidden;}
+.k-col-hdr{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;}
+.k-col-title{font-size:12.5px;font-weight:600;}
+.k-count{font-family:'JetBrains Mono',monospace;font-size:10px;color:#4A4845;background:rgba(255,255,255,.06);border-radius:100px;padding:2px 7px;}
+.k-body{padding:10px;display:flex;flex-direction:column;gap:8px;min-height:120px;}
+.k-card{background:#222;border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:12px;cursor:pointer;transition:border-color .14s;}
+.k-card:hover{border-color:rgba(232,73,15,.3);}
+.k-card-title{font-size:12.5px;font-weight:600;color:#fff;margin-bottom:6px;}
+.k-card-client{font-size:11px;color:#4A4845;margin-bottom:8px;}
+.k-card-footer{display:flex;align-items:center;justify-content:space-between;gap:6px;}
+.k-valor{font-family:'JetBrains Mono',monospace;font-size:11px;color:#E8490F;}
+.k-prazo{font-family:'JetBrains Mono',monospace;font-size:10px;color:#4A4845;}
+.k-prazo.vence{color:#F5A623;}
+.k-prazo.atrasado{color:#FF6B6B;}
+.k-empty{padding:16px;text-align:center;font-size:12px;color:#2a2a2a;}
+
+/* ── TAREFAS ── */
+.task-item{display:flex;align-items:flex-start;gap:11px;padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.04);transition:background .14s;}
+.task-item:last-child{border-bottom:none;}
+.task-item:hover{background:rgba(255,255,255,.02);}
+.task-check{width:16px;height:16px;border-radius:50%;border:2px solid #333;flex-shrink:0;margin-top:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .14s;}
+.task-check.done{background:#2ECC71;border-color:#2ECC71;}
+.task-check.done i{display:block;}
+.task-check i{display:none;width:10px;height:10px;color:#fff;}
+.task-body{flex:1;min-width:0;}
+.task-title{font-size:13px;font-weight:500;color:#D0CEC9;margin-bottom:3px;}
+.task-title.done{text-decoration:line-through;color:#4A4845;}
+.task-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.task-prazo{font-family:'JetBrains Mono',monospace;font-size:10px;color:#4A4845;}
+.task-prazo.vence{color:#F5A623;}
+.task-prazo.atrasado{color:#FF6B6B;}
+.task-right{display:flex;align-items:center;gap:7px;flex-shrink:0;}
+
+/* ── PRIORIDADE ── */
+.prio-urgente{color:#FF6B6B;}
+.prio-alta{color:#F5A623;}
+.prio-media{color:#3A86FF;}
+.prio-baixa{color:#4A4845;}
+
+/* ── TIMELINE ── */
+.tl-item{display:flex;gap:11px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04);}
+.tl-item:last-child{border-bottom:none;}
+.tl-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.tl-desc{font-size:12.5px;color:#C0BEBB;}
+.tl-time{font-size:11px;color:#3A3835;margin-top:2px;font-family:'JetBrains Mono',monospace;}
+
+/* ── FIN TABLE ── */
+.fin-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.04);gap:12px;}
+.fin-row:last-child{border-bottom:none;}
+.fin-desc{font-size:13px;color:#C0BEBB;}
+.fin-val{font-family:'JetBrains Mono',monospace;font-size:13px;}
+.fin-meta{font-size:11px;color:#3A3835;font-family:'JetBrains Mono',monospace;margin-top:2px;}
+
+/* ── FILTER TABS ── */
+.tabs{display:flex;gap:4px;flex-wrap:wrap;}
+.tab{padding:5px 12px;border-radius:100px;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;cursor:pointer;border:1px solid rgba(255,255,255,.08);color:#5A5857;background:transparent;transition:all .14s;}
+.tab:hover{border-color:rgba(255,255,255,.18);color:#bbb;}
+.tab.active{background:rgba(232,73,15,.12);border-color:rgba(232,73,15,.3);color:#E8490F;}
+.tab-cnt{margin-left:4px;background:rgba(255,255,255,.08);border-radius:100px;padding:0 5px;font-size:9px;}
+
+/* ── EMPTY STATE ── */
+.empty{padding:50px 20px;text-align:center;}
+.empty i{width:32px;height:32px;color:#222;display:block;margin:0 auto 12px;}
+.empty p{font-size:13px;color:#3A3835;}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:18px;right:18px;background:#1C1C1C;border:1px solid rgba(232,73,15,.3);border-radius:10px;padding:10px 14px;font-size:12.5px;color:#fff;font-weight:500;display:none;align-items:center;gap:8px;box-shadow:0 8px 28px rgba(0,0,0,.4);z-index:999;}
+#toast i{width:14px;height:14px;}
+.toast-ok i{color:#2ECC71;}
+.toast-err i{color:#FF6B6B;}
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px){.g4{grid-template-columns:repeat(2,1fr);}.sidebar{width:0;overflow:hidden;position:absolute;z-index:100;}}
+</style>
+</head>
+<body>
+
+<!-- ─────────── LOGIN ─────────── -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo"><div class="sq"></div><span>morph</span></div>
+    <div class="login-title">Acesse o CRM</div>
+    <div class="login-sub">Use seu e-mail e senha cadastrados no Supabase Auth</div>
+    <div class="login-err" id="login-err"></div>
+    <div class="field"><label>E-mail</label><input type="email" id="l-email" placeholder="voce@morph.com.br" autocomplete="email"></div>
+    <div class="field"><label>Senha</label><input type="password" id="l-senha" placeholder="••••••••" autocomplete="current-password"></div>
+    <button class="btn-login" id="btn-login" onclick="doLogin()">Entrar</button>
+  </div>
+</div>
+
+<!-- ─────────── APP ─────────── -->
+<div id="app" style="display:none;">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="logo"><div class="sq"></div><span>morph</span></div>
+    <div class="nav-sec">Principal</div>
+    <div class="nav-item active" data-page="dashboard" onclick="goto('dashboard',this)"><i data-lucide="layout-dashboard"></i>Dashboard</div>
+    <div class="nav-sec">CRM</div>
+    <div class="nav-item" data-page="clientes" onclick="goto('clientes',this)"><i data-lucide="building-2"></i>Clientes</div>
+    <div class="nav-item" data-page="contatos" onclick="goto('contatos',this)"><i data-lucide="contact"></i>Contatos</div>
+    <div class="nav-item" data-page="negocios" onclick="goto('negocios',this)"><i data-lucide="kanban"></i>Negócios</div>
+    <div class="nav-item" data-page="tarefas" onclick="goto('tarefas',this)"><i data-lucide="circle-check"></i>Tarefas</div>
+    <div class="nav-sec">Empresa</div>
+    <div class="nav-item" data-page="financeiro" onclick="goto('financeiro',this)"><i data-lucide="trending-up"></i>Financeiro</div>
+    <div class="nav-item" data-page="atividades" onclick="goto('atividades',this)"><i data-lucide="activity"></i>Atividades</div>
+    <div class="nav-item" data-page="config" onclick="goto('config',this)"><i data-lucide="settings"></i>Configurações</div>
+    <div class="sidebar-foot">
+      <div class="user-info" id="user-email-display"></div>
+      <button class="btn-logout" onclick="doLogout()"><i data-lucide="log-out"></i>Sair</button>
+    </div>
+  </nav>
+
+  <!-- CONTENT -->
+  <div class="content">
+    <div class="topbar">
+      <div class="page-title" id="page-title">Dashboard</div>
+      <div class="topbar-right" id="topbar-actions"></div>
+    </div>
+    <div class="page" id="page-content"></div>
+  </div>
+</div>
+
+<!-- ─────────── MODAIS ─────────── -->
+
+<!-- Modal genérico -->
+<div class="overlay" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal-inner">
+    <div class="modal-hdr">
+      <div class="modal-title" id="modal-title">Modal</div>
+      <button class="modal-close" onclick="closeModal()"><i data-lucide="x"></i></button>
+    </div>
+    <div id="modal-body"></div>
+    <div class="modal-foot" id="modal-foot"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"><i data-lucide="check-circle"></i><span id="toast-msg"></span></div>
+
+<script>
+// ══════════════════════════════════════════════
+// ⚙️  CONFIGURAÇÃO — preencha aqui
+// ══════════════════════════════════════════════
+const SUPABASE_URL  = 'https://SEU_PROJECT_ID.supabase.co';
+const SUPABASE_KEY  = 'SUA_ANON_KEY';
+// ══════════════════════════════════════════════
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let CURRENT_USER = null;
+let CURRENT_PAGE = 'dashboard';
+
+// ── META ──
+const STATUS_NEG = {
+  prospeccao: {l:'Prospecção',   cls:'bp'},
+  negociacao:  {l:'Negociação',   cls:'bn'},
+  proposta:    {l:'Proposta',     cls:'bpr'},
+  fechado:     {l:'Fechado',      cls:'bf'},
+  perdido:     {l:'Perdido',      cls:'bpe'},
+};
+const PRIO_META = {
+  baixa:   {l:'Baixa',   cls:'prio-baixa'},
+  media:   {l:'Média',   cls:'prio-media'},
+  alta:    {l:'Alta',    cls:'prio-alta'},
+  urgente: {l:'Urgente', cls:'prio-urgente'},
+};
+const TIPO_TAREFA = {
+  tarefa:    'Tarefa',
+  ligacao:   'Ligação',
+  email:     'E-mail',
+  reuniao:   'Reunião',
+  follow_up: 'Follow-up',
+};
+
+// ────────────────────────────────────────────
+// AUTH
+// ────────────────────────────────────────────
+async function init() {
+  lucide.createIcons();
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) await startApp(session.user);
+  sb.auth.onAuthStateChange((_ev, session) => {
+    if (session) startApp(session.user);
+    else showLogin();
+  });
+}
+
+async function doLogin() {
+  const email = document.getElementById('l-email').value.trim();
+  const senha = document.getElementById('l-senha').value;
+  const btn   = document.getElementById('btn-login');
+  const err   = document.getElementById('login-err');
+  err.style.display = 'none';
+  btn.disabled = true; btn.textContent = 'Entrando...';
+  const { error } = await sb.auth.signInWithPassword({ email, password: senha });
+  btn.disabled = false; btn.textContent = 'Entrar';
+  if (error) { err.textContent = error.message; err.style.display='block'; }
+}
+
+async function doLogout() {
+  await sb.auth.signOut();
+  showLogin();
+}
+
+function showLogin() {
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+}
+
+async function startApp(user) {
+  CURRENT_USER = user;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('user-email-display').textContent = user.email;
+  lucide.createIcons();
+  await goto('dashboard', document.querySelector('[data-page="dashboard"]'));
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('login-screen').style.display !== 'none') doLogin();
+});
+
+// ────────────────────────────────────────────
+// ROUTER
+// ────────────────────────────────────────────
+const PAGE_TITLES = {
+  dashboard: 'Dashboard', clientes: 'Clientes', contatos: 'Contatos',
+  negocios: 'Negócios', tarefas: 'Tarefas', financeiro: 'Financeiro',
+  atividades: 'Atividades', config: 'Configurações',
+};
+const PAGE_ACTIONS = {
+  clientes:   () => `<button class="btn btn-p btn-sm" onclick="openClienteModal()"><i data-lucide="plus"></i>Novo Cliente</button>`,
+  contatos:   () => `<button class="btn btn-p btn-sm" onclick="openContatoModal()"><i data-lucide="plus"></i>Novo Contato</button>`,
+  negocios:   () => `<button class="btn btn-p btn-sm" onclick="openNegocioModal()"><i data-lucide="plus"></i>Novo Negócio</button>`,
+  tarefas:    () => `<button class="btn btn-p btn-sm" onclick="openTarefaModal()"><i data-lucide="plus"></i>Nova Tarefa</button>`,
+  financeiro: () => `<button class="btn btn-p btn-sm" onclick="openCustoModal()"><i data-lucide="plus"></i>Novo Custo</button>
+                     <button class="btn btn-gh btn-sm" onclick="openReceitaModal()"><i data-lucide="plus"></i>Nova Receita</button>`,
+};
+
+async function goto(page, el) {
+  CURRENT_PAGE = page;
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.getElementById('page-title').textContent = PAGE_TITLES[page] || page;
+  const act = PAGE_ACTIONS[page];
+  document.getElementById('topbar-actions').innerHTML = act ? act() : '';
+  lucide.createIcons();
+  const content = document.getElementById('page-content');
+  content.innerHTML = '<div style="padding:40px;text-align:center;color:#333;">Carregando...</div>';
+  await renderPage(page);
+}
+
+async function renderPage(page) {
+  const fns = { dashboard, clientes, contatos, negocios, tarefas, financeiro, atividades, config };
+  if (fns[page]) await fns[page]();
+}
+
+// ────────────────────────────────────────────
+// UTILS
+// ────────────────────────────────────────────
+function fmt(n) {
+  if (!n) return 'R$ 0,00';
+  const abs = Math.abs(n).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  return (n<0?'−':'')+'R$ '+abs;
+}
+function initials(nome='') { return nome.split(' ').filter(Boolean).map(w=>w[0]).join('').toUpperCase().slice(0,2)||'?'; }
+function fmtDate(d) { if(!d) return ''; return new Date(d+'T12:00:00').toLocaleDateString('pt-BR'); }
+function fmtDatetime(d) { if(!d) return ''; return new Date(d).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }
+function prazoInfo(prazo) {
+  if (!prazo) return null;
+  const dt = new Date(prazo+'T00:00:00'), hoje = new Date(); hoje.setHours(0,0,0,0);
+  const diff = Math.round((dt-hoje)/86400000);
+  if (diff<0)  return {txt: fmtDate(prazo)+' · atrasado', cls:'atrasado'};
+  if (diff===0)return {txt: 'Hoje', cls:'vence'};
+  if (diff<=3) return {txt: fmtDate(prazo)+' · '+diff+'d', cls:'vence'};
+  return {txt: fmtDate(prazo), cls:''};
+}
+function set(id,html){const el=document.getElementById(id);if(el)el.innerHTML=html;}
+function toast(msg, ok=true) {
+  const t = document.getElementById('toast');
+  t.className = ok ? 'toast-ok' : 'toast-err';
+  document.getElementById('toast-msg').textContent = msg;
+  t.style.display='flex'; lucide.createIcons();
+  clearTimeout(t._to); t._to = setTimeout(()=>t.style.display='none',3000);
+}
+function openModal(title, body, foot) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = body;
+  document.getElementById('modal-foot').innerHTML = foot;
+  document.getElementById('modal').classList.add('open');
+  lucide.createIcons();
+}
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+function v(id) { const el=document.getElementById(id); return el ? el.value : ''; }
+function ni(id, label, type='text', placeholder='', required=false) {
+  return `<div class="f-group"><label class="f-label">${label}${required?' *':''}</label>
+    <input type="${type}" id="${id}" placeholder="${placeholder}" ${required?'required':''}></div>`;
+}
+function ns(id, label, options, selected='') {
+  const opts = Object.entries(options).map(([val,lbl])=>`<option value="${val}" ${val===selected?'selected':''}>${lbl}</option>`).join('');
+  return `<div class="f-group"><label class="f-label">${label}</label><select id="${id}">${opts}</select></div>`;
+}
+
+// ────────────────────────────────────────────
+// DASHBOARD
+// ────────────────────────────────────────────
+async function dashboard() {
+  const [
+    {data:cls}, {data:negs}, {data:tarefs},
+    {data:custos}, {data:receitas}
+  ] = await Promise.all([
+    sb.from('clientes').select('id,status'),
+    sb.from('negocios').select('id,status,valor'),
+    sb.from('tarefas').select('id,status,prazo,titulo,prioridade'),
+    sb.from('custos').select('valor,recorrencia,ativo'),
+    sb.from('receitas').select('valor'),
+  ]);
+
+  const totalCls     = cls?.length || 0;
+  const negAbertos   = negs?.filter(n=>!['fechado','perdido'].includes(n.status)).length || 0;
+  const negFechados  = negs?.filter(n=>n.status==='fechado') || [];
+  const pipeline     = negs?.filter(n=>!['fechado','perdido'].includes(n.status)).reduce((a,n)=>a+(n.valor||0),0) || 0;
+  const receita      = receitas?.reduce((a,r)=>a+(r.valor||0),0) || 0;
+  const custoFixo    = custos?.filter(c=>c.ativo).reduce((a,c)=>{
+    if(c.recorrencia==='mensal') return a+(c.valor||0);
+    if(c.recorrencia==='anual')  return a+(c.valor||0)/12;
+    return a;
+  },0) || 0;
+  const lucro        = receita - custoFixo;
+  const tarefasPend  = tarefs?.filter(t=>t.status==='pendente')||[];
+  const hoje         = new Date(); hoje.setHours(0,0,0,0);
+  const atrasadas    = tarefasPend.filter(t=>t.prazo && new Date(t.prazo)<hoje).length;
+
+  // recent atividades
+  const {data:acts} = await sb.from('atividades').select('*').order('created_at',{ascending:false}).limit(8);
+
+  set('page-content', `
+  <div class="g4">
+    <div class="card"><div class="icon-box ib-o"><i data-lucide="building-2"></i></div><div class="c-lbl">Clientes</div><div class="c-val">${totalCls}</div><div class="c-sub">cadastrados</div></div>
+    <div class="card"><div class="icon-box ib-b"><i data-lucide="kanban"></i></div><div class="c-lbl">Negócios Abertos</div><div class="c-val" style="color:#3A86FF;">${negAbertos}</div><div class="c-sub">${fmt(pipeline)} em pipeline</div></div>
+    <div class="card"><div class="icon-box ib-g"><i data-lucide="trending-up"></i></div><div class="c-lbl">Receita</div><div class="c-val" style="color:${lucro>=0?'#2ECC71':'#FF6B6B'};">${fmt(lucro)}</div><div class="c-sub">lucro líquido</div></div>
+    <div class="card"><div class="icon-box ${atrasadas>0?'ib-r':'ib-y'}"><i data-lucide="circle-check"></i></div><div class="c-lbl">Tarefas</div><div class="c-val" style="color:${atrasadas>0?'#FF6B6B':'#F5A623'};">${tarefasPend.length}</div><div class="c-sub">${atrasadas>0?atrasadas+' atrasada(s)':'pendentes'}</div></div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="c-lbl" style="margin-bottom:12px;">Pipeline por Status</div>
+      ${['prospeccao','negociacao','proposta'].map(s=>{
+        const n = negs?.filter(x=>x.status===s)||[];
+        const val = n.reduce((a,x)=>a+(x.valor||0),0);
+        const pct = pipeline>0 ? Math.round(val/pipeline*100) : 0;
+        const sm = STATUS_NEG[s];
+        return `<div style="margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+            <span class="badge ${sm.cls}">${sm.l}</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#fff;">${fmt(val)}</span>
+          </div>
+          <div style="height:4px;background:#222;border-radius:2px;overflow:hidden;">
+            <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#E8490F,#F5A623);border-radius:2px;"></div>
+          </div>
+        </div>`;
+      }).join('')}
+      <div style="margin-top:14px;display:flex;justify-content:space-between;">
+        <span style="font-size:12px;color:#4A4845;">Total pipeline</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#fff;">${fmt(pipeline)}</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="c-lbl" style="margin-bottom:12px;">Últimas Atividades</div>
+      ${(acts&&acts.length)
+        ? acts.map(a=>`<div class="tl-item"><div class="tl-dot" style="background:#333;margin-top:5px;"></div><div><div class="tl-desc">${a.descricao}</div><div class="tl-time">${fmtDatetime(a.created_at)}</div></div></div>`).join('')
+        : '<div class="empty" style="padding:20px;"><i data-lucide="activity"></i><p>Nenhuma atividade</p></div>'
+      }
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="c-lbl" style="margin-bottom:12px;">Próximas Tarefas</div>
+    ${tarefasPend.slice(0,5).map(t=>{
+      const pi = prazoInfo(t.prazo?t.prazo.slice(0,10):null);
+      const pm = PRIO_META[t.prioridade]||PRIO_META.media;
+      return `<div class="task-item">
+        <div class="task-check" onclick="toggleTarefa('${t.id}')"><i data-lucide="check"></i></div>
+        <div class="task-body">
+          <div class="task-title">${t.titulo}</div>
+          <div class="task-meta">
+            <span class="badge bgr">${TIPO_TAREFA[t.tipo]||t.tipo}</span>
+            ${pi?`<span class="task-prazo ${pi.cls}">${pi.txt}</span>`:''}
+          </div>
+        </div>
+        <span class="${pm.cls}" style="font-size:11px;font-weight:600;">${pm.l}</span>
+      </div>`;
+    }).join('') || '<div class="empty" style="padding:20px;"><i data-lucide="circle-check"></i><p>Nenhuma tarefa pendente</p></div>'}
+  </div>`);
+  lucide.createIcons();
+}
+
+// ────────────────────────────────────────────
+// CLIENTES
+// ────────────────────────────────────────────
+let _clFilter = 'todos';
+async function clientes() {
+  const {data} = await sb.from('clientes').select('*').order('created_at',{ascending:false});
+  renderClientes(data||[], _clFilter);
+}
+
+function renderClientes(data, filter) {
+  const counts = {todos:data.length, ativo:0, inativo:0, prospecto:0};
+  data.forEach(c=>{ if(counts[c.status]!==undefined) counts[c.status]++; });
+  const filtered = filter==='todos' ? data : data.filter(c=>c.status===filter);
+
+  const STATUS_CL = {ativo:{l:'Ativo',cls:'bf'}, inativo:{l:'Inativo',cls:'bgr'}, prospecto:{l:'Prospecto',cls:'bp'}};
+
+  set('page-content', `
+  <div class="tbl-wrap">
+    <div class="tbl-toolbar">
+      <input class="search-inp" type="text" placeholder="Buscar cliente..." oninput="filterClientes(this.value)" id="cl-search">
+      <div class="tabs">
+        ${['todos','ativo','prospecto','inativo'].map(s=>`<button class="tab ${_clFilter===s?'active':''}" onclick="_clFilter='${s}';clientes();">${s==='todos'?'Todos':STATUS_CL[s]?.l||s}<span class="tab-cnt">${counts[s]||0}</span></button>`).join('')}
+      </div>
+      <div style="margin-left:auto;"></div>
+    </div>
+    ${filtered.length===0
+      ? '<div class="empty"><i data-lucide="building-2"></i><p>Nenhum cliente encontrado</p></div>'
+      : `<table><thead><tr><th>Cliente</th><th>Segmento</th><th>E-mail</th><th>Telefone</th><th>Status</th><th></th></tr></thead><tbody>
+        ${filtered.map(c=>{
+          const sm=STATUS_CL[c.status]||{l:c.status,cls:'bgr'};
+          return `<tr onclick="openClienteModal('${c.id}')">
+            <td><div class="td-name">${c.nome}</div></td>
+            <td>${c.segmento||'—'}</td><td>${c.email||'—'}</td><td>${c.telefone||'—'}</td>
+            <td><span class="badge ${sm.cls}">${sm.l}</span></td>
+            <td><div class="td-actions">
+              <button class="btn btn-gh btn-xs" onclick="event.stopPropagation();openClienteModal('${c.id}')"><i data-lucide="pencil"></i></button>
+              <button class="btn btn-danger btn-xs" onclick="event.stopPropagation();deleteCliente('${c.id}')"><i data-lucide="trash-2"></i></button>
+            </div></td>
+          </tr>`;
+        }).join('')}
+      </tbody></table>`
+    }
+  </div>`);
+  lucide.createIcons();
+}
+
+function filterClientes(q) {
+  // simple client-side filter on already rendered — refetch for proper
+  if (!q) { clientes(); return; }
+}
+
+async function openClienteModal(id=null) {
+  let c = {};
+  if (id) {
+    const {data} = await sb.from('clientes').select('*').eq('id',id).single();
+    c = data||{};
+  }
+  openModal(id?'Editar Cliente':'Novo Cliente',`
+    ${ni('c-nome','Nome da Empresa','text','Ex: Feerxs Studio',true)}
+    <div class="f-row">
+      ${ni('c-seg','Segmento','text','Ex: Estúdio criativo')}
+      ${ns('c-status','Status',{ativo:'Ativo',prospecto:'Prospecto',inativo:'Inativo'},c.status||'ativo')}
+    </div>
+    <div class="f-row">
+      ${ni('c-email','E-mail','email','contato@empresa.com')}
+      ${ni('c-tel','Telefone','text','(11) 99999-9999')}
+    </div>
+    ${ni('c-web','Website','text','https://')}
+    <div class="f-group"><label class="f-label">Notas</label><textarea id="c-notas" placeholder="Informações relevantes...">${c.notas||''}</textarea></div>`,
+    `<button class="btn btn-gh" onclick="closeModal()">Cancelar</button>
+     <button class="btn btn-p" onclick="saveCliente('${id||''}')"><i data-lucide="save"></i>${id?'Salvar':'Criar'}</button>`
+  );
+  if (id) {
+    ['nome','seg','email','tel','web'].forEach(k=>{
+      const map={nome:'nome',seg:'segmento',email:'email',tel:'telefone',web:'website'};
+      const el=document.getElementById('c-'+k);
+      if(el&&c[map[k]]) el.value=c[map[k]];
+    });
+    document.getElementById('c-status').value = c.status||'ativo';
+  }
+}
+
+async function saveCliente(id) {
+  const nome = v('c-nome'); if(!nome){toast('Nome obrigatório',false);return;}
+  const payload = {
+    nome, segmento:v('c-seg'), status:v('c-status'),
+    email:v('c-email'), telefone:v('c-tel'),
+    website:v('c-web'), notas:v('c-notas'),
+    user_id: CURRENT_USER.id,
+  };
+  let err;
+  if (id) { ({error:err}=await sb.from('clientes').update(payload).eq('id',id)); }
+  else    { ({error:err}=await sb.from('clientes').insert(payload)); }
+  if (err) { toast(err.message,false); return; }
+  if (!id) logAtividade('nota',`Novo cliente criado: ${nome}`);
+  closeModal(); toast(id?'Cliente atualizado!':'Cliente criado!');
+  await clientes();
+}
+
+async function deleteCliente(id) {
+  if(!confirm('Remover este cliente?')) return;
+  const {error}=await sb.from('clientes').delete().eq('id',id);
+  if(error){toast(error.message,false);return;}
+  toast('Cliente removido.'); await clientes();
+}
+
+// ────────────────────────────────────────────
+// CONTATOS
+// ────────────────────────────────────────────
+async function contatos() {
+  const [{data:cts},{data:cls}] = await Promise.all([
+    sb.from('contatos').select('*').order('created_at',{ascending:false}),
+    sb.from('clientes').select('id,nome'),
+  ]);
+  const clMap = Object.fromEntries((cls||[]).map(c=>[c.id,c.nome]));
+
+  set('page-content',`
+  <div class="tbl-wrap">
+    <div class="tbl-toolbar">
+      <input class="search-inp" type="text" placeholder="Buscar contato...">
+    </div>
+    ${(cts&&cts.length)
+      ? `<table><thead><tr><th>Nome</th><th>Cargo</th><th>Empresa</th><th>E-mail</th><th>Telefone</th><th></th></tr></thead><tbody>
+        ${cts.map(c=>`<tr onclick="openContatoModal('${c.id}')">
+          <td><div class="td-name">${c.nome}</div></td>
+          <td>${c.cargo||'—'}</td>
+          <td>${c.cliente_id?clMap[c.cliente_id]||'—':'—'}</td>
+          <td>${c.email||'—'}</td><td>${c.telefone||'—'}</td>
+          <td><div class="td-actions">
+            <button class="btn btn-gh btn-xs" onclick="event.stopPropagation();openContatoModal('${c.id}')"><i data-lucide="pencil"></i></button>
+            <button class="btn btn-danger btn-xs" onclick="event.stopPropagation();deleteContato('${c.id}')"><i data-lucide="trash-2"></i></button>
+          </div></td>
+        </tr>`).join('')}
+      </tbody></table>`
+      : '<div class="empty"><i data-lucide="contact"></i><p>Nenhum contato cadastrado</p></div>'
+    }
+  </div>`);
+  lucide.createIcons();
+}
+
+async function openContatoModal(id=null) {
+  const {data:cls} = await sb.from('clientes').select('id,nome').eq('status','ativo');
+  let c = {};
+  if (id) { const {data}=await sb.from('contatos').select('*').eq('id',id).single(); c=data||{}; }
+  const clOpts = {'':'Nenhuma',...Object.fromEntries((cls||[]).map(x=>[x.id,x.nome]))};
+  openModal(id?'Editar Contato':'Novo Contato',`
+    ${ni('ct-nome','Nome completo','text','',true)}
+    <div class="f-row">
+      ${ni('ct-cargo','Cargo','text','Ex: Diretor')}
+      ${ns('ct-cid','Empresa',clOpts,c.cliente_id||'')}
+    </div>
+    <div class="f-row">
+      ${ni('ct-email','E-mail','email','')}
+      ${ni('ct-tel','Telefone','text','')}
+    </div>
+    ${ni('ct-wpp','WhatsApp','text','')}
+    <div class="f-group"><label class="f-label">Notas</label><textarea id="ct-notas">${c.notas||''}</textarea></div>`,
+    `<button class="btn btn-gh" onclick="closeModal()">Cancelar</button>
+     <button class="btn btn-p" onclick="saveContato('${id||''}')"><i data-lucide="save"></i>${id?'Salvar':'Criar'}</button>`
+  );
+  if(id){
+    const map={nome:'nome',cargo:'cargo',email:'email',tel:'telefone',wpp:'whatsapp'};
+    Object.entries(map).forEach(([k,f])=>{const el=document.getElementById('ct-'+k);if(el&&c[f])el.value=c[f];});
+    document.getElementById('ct-cid').value=c.cliente_id||'';
+  }
+}
+
+async function saveContato(id) {
+  const nome=v('ct-nome');if(!nome){toast('Nome obrigatório',false);return;}
+  const payload={nome,cargo:v('ct-cargo'),cliente_id:v('ct-cid')||null,email:v('ct-email'),telefone:v('ct-tel'),whatsapp:v('ct-wpp'),notas:v('ct-notas'),user_id:CURRENT_USER.id};
+  let err;
+  if(id){({error:err}=await sb.from('contatos').update(payload).eq('id',id));}
+  else  {({error:err}=await sb.from('contatos').insert(payload));}
+  if(err){toast(err.message,false);return;}
+  closeModal();toast(id?'Contato atualizado!':'Contato criado!');await contatos();
+}
+async function deleteContato(id){if(!confirm('Remover contato?'))return;await sb.from('contatos').delete().eq('id',id);toast('Removido.');await contatos();}
+
+// ────────────────────────────────────────────
+// NEGÓCIOS — KANBAN
+// ────────────────────────────────────────────
+async function negocios() {
+  const [{data:negs},{data:cls}] = await Promise.all([
+    sb.from('negocios').select('*').order('updated_at',{ascending:false}),
+    sb.from('clientes').select('id,nome'),
+  ]);
+  const clMap = Object.fromEntries((cls||[]).map(c=>[c.id,c.nome]));
+  const statuses = ['prospeccao','negociacao','proposta','fechado','perdido'];
+  const COL_COLORS = {prospeccao:'#3A86FF',negociacao:'#E8490F',proposta:'#F5A623',fechado:'#2ECC71',perdido:'#FF6B6B'};
+
+  set('page-content',`
+  <div class="kanban">
+    ${statuses.map(s=>{
+      const sm=STATUS_NEG[s];
+      const cards=(negs||[]).filter(n=>n.status===s);
+      const total=cards.reduce((a,n)=>a+(n.valor||0),0);
+      return `<div class="k-col">
+        <div class="k-col-hdr">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:8px;height:8px;border-radius:50%;background:${COL_COLORS[s]};"></div>
+            <div class="k-col-title">${sm.l}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div class="k-count">${cards.length}</div>
+            <button class="btn btn-gh btn-xs" onclick="openNegocioModal(null,'${s}')"><i data-lucide="plus"></i></button>
+          </div>
+        </div>
+        ${total>0?`<div style="padding:6px 14px 0;font-family:'JetBrains Mono',monospace;font-size:10px;color:#4A4845;">${fmt(total)}</div>`:''}
+        <div class="k-body">
+          ${cards.length===0?'<div class="k-empty">Vazio</div>':cards.map(n=>{
+            const pi=prazoInfo(n.prazo);
+            const clNome=n.cliente_id?clMap[n.cliente_id]:'';
+            return `<div class="k-card" onclick="openNegocioModal('${n.id}')">
+              <div class="k-card-title">${n.titulo}</div>
+              ${clNome?`<div class="k-card-client">${clNome}</div>`:''}
+              <div class="k-card-footer">
+                ${n.valor?`<span class="k-valor">${fmt(n.valor)}</span>`:'<span></span>'}
+                ${pi?`<span class="k-prazo ${pi.cls}">${pi.txt}</span>`:''}
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`);
+  lucide.createIcons();
+}
+
+async function openNegocioModal(id=null, defaultStatus='negociacao') {
+  const [{data:cls},{data:cts}] = await Promise.all([
+    sb.from('clientes').select('id,nome'),
+    sb.from('contatos').select('id,nome'),
+  ]);
+  let n={};
+  if(id){const {data}=await sb.from('negocios').select('*').eq('id',id).single();n=data||{};}
+  const clOpts={'':'Nenhum',...Object.fromEntries((cls||[]).map(x=>[x.id,x.nome]))};
+  const ctOpts={'':'Nenhum',...Object.fromEntries((cts||[]).map(x=>[x.id,x.nome]))};
+  const statusOpts=Object.fromEntries(Object.entries(STATUS_NEG).map(([k,v])=>[k,v.l]));
+  openModal(id?'Editar Negócio':'Novo Negócio',`
+    ${ni('n-titulo','Título do Negócio','text','',true)}
+    <div class="f-row">
+      ${ns('n-status','Status',statusOpts,n.status||defaultStatus)}
+      ${ni('n-valor','Valor (R$)','number','0')}
+    </div>
+    <div class="f-row">
+      ${ns('n-cid','Cliente',clOpts,n.cliente_id||'')}
+      ${ns('n-ctid','Contato',ctOpts,n.contato_id||'')}
+    </div>
+    <div class="f-row">
+      ${ni('n-prazo','Prazo','date','')}
+      <div class="f-group"><label class="f-label">Probabilidade (%)</label><input type="number" id="n-prob" min="0" max="100" placeholder="50"></div>
+    </div>
+    <div class="f-group"><label class="f-label">Notas</label><textarea id="n-notas">${n.notas||''}</textarea></div>
+    ${id?`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;">
+      ${Object.entries(STATUS_NEG).map(([s,sm])=>`<button class="btn btn-gh btn-xs" onclick="changeNegStatus('${id}','${s}')">→ ${sm.l}</button>`).join('')}
+    </div>`:''}`,
+    `<button class="btn btn-gh" onclick="closeModal()">Cancelar</button>
+     ${id?`<button class="btn btn-danger btn-xs" onclick="deleteNegocio('${id}')"><i data-lucide="trash-2"></i></button>`:''}
+     <button class="btn btn-p" onclick="saveNegocio('${id||''}')"><i data-lucide="save"></i>${id?'Salvar':'Criar'}</button>`
+  );
+  if(id){
+    document.getElementById('n-titulo').value=n.titulo||'';
+    document.getElementById('n-valor').value=n.valor||'';
+    if(n.prazo)document.getElementById('n-prazo').value=n.prazo;
+    document.getElementById('n-prob').value=n.probabilidade||50;
+    document.getElementById('n-status').value=n.status||'negociacao';
+    document.getElementById('n-cid').value=n.cliente_id||'';
+    document.getElementById('n-ctid').value=n.contato_id||'';
+  }
+}
+
+async function saveNegocio(id) {
+  const titulo=v('n-titulo');if(!titulo){toast('Título obrigatório',false);return;}
+  const oldStatus = id ? (await sb.from('negocios').select('status').eq('id',id).single()).data?.status : null;
+  const newStatus = v('n-status');
+  const payload={titulo,status:newStatus,valor:parseFloat(v('n-valor'))||0,
+    cliente_id:v('n-cid')||null,contato_id:v('n-ctid')||null,
+    prazo:v('n-prazo')||null,probabilidade:parseInt(v('n-prob'))||50,
+    notas:v('n-notas'),user_id:CURRENT_USER.id};
+  let err;
+  if(id){({error:err}=await sb.from('negocios').update(payload).eq('id',id));}
+  else  {({error:err}=await sb.from('negocios').insert(payload));}
+  if(err){toast(err.message,false);return;}
+  if(oldStatus&&oldStatus!==newStatus) logAtividade('status_change',`Negócio "${titulo}": ${STATUS_NEG[oldStatus]?.l} → ${STATUS_NEG[newStatus]?.l}`);
+  closeModal();toast(id?'Negócio salvo!':'Negócio criado!');await negocios();
+}
+
+async function changeNegStatus(id, status) {
+  await sb.from('negocios').update({status}).eq('id',id);
+  closeModal(); toast('Status atualizado!'); await negocios();
+}
+
+async function deleteNegocio(id){if(!confirm('Remover negócio?'))return;await sb.from('negocios').delete().eq('id',id);closeModal();toast('Removido.');await negocios();}
+
+// ────────────────────────────────────────────
+// TAREFAS
+// ────────────────────────────────────────────
+let _tfFilter='pendente';
+async function tarefas() {
+  const [{data:tfs},{data:cls}] = await Promise.all([
+    sb.from('tarefas').select('*').order('prazo',{ascending:true,nullsFirst:false}),
+    sb.from('clientes').select('id,nome'),
+  ]);
+  const clMap=Object.fromEntries((cls||[]).map(c=>[c.id,c.nome]));
+  const all=tfs||[];
+  const counts={todos:all.length,pendente:0,em_progresso:0,concluida:0};
+  all.forEach(t=>{if(counts[t.status]!==undefined)counts[t.status]++;});
+  const filtered=_tfFilter==='todos'?all:all.filter(t=>t.status===_tfFilter);
+
+  set('page-content',`
+  <div class="tbl-wrap">
+    <div class="tbl-toolbar">
+      <div class="tabs">
+        ${[['todos','Todas'],['pendente','Pendentes'],['em_progresso','Em andamento'],['concluida','Concluídas']].map(([k,l])=>
+          `<button class="tab ${_tfFilter===k?'active':''}" onclick="_tfFilter='${k}';tarefas();">${l}<span class="tab-cnt">${counts[k]||0}</span></button>`
+        ).join('')}
+      </div>
+    </div>
+    ${filtered.length===0
+      ?'<div class="empty"><i data-lucide="circle-check"></i><p>Nenhuma tarefa aqui</p></div>'
+      :filtered.map(t=>{
+        const pi=prazoInfo(t.prazo?t.prazo.slice(0,10):null);
+        const pm=PRIO_META[t.prioridade]||PRIO_META.media;
+        const clNome=t.cliente_id?clMap[t.cliente_id]:'';
+        const done=t.status==='concluida';
+        return `<div class="task-item">
+          <div class="task-check ${done?'done':''}" onclick="toggleTarefa('${t.id}','${t.status}')"><i data-lucide="check"></i></div>
+          <div class="task-body" onclick="openTarefaModal('${t.id}')" style="cursor:pointer;">
+            <div class="task-title ${done?'done':''}">${t.titulo}</div>
+            <div class="task-meta">
+              <span class="badge bgr">${TIPO_TAREFA[t.tipo]||t.tipo}</span>
+              ${clNome?`<span style="font-size:11px;color:#4A4845;">${clNome}</span>`:''}
+              ${pi?`<span class="task-prazo ${pi.cls}">${pi.txt}</span>`:''}
+            </div>
+          </div>
+          <div class="task-right">
+            <span class="${pm.cls}" style="font-size:11px;font-weight:600;">${pm.l}</span>
+            <button class="btn btn-danger btn-xs" onclick="deleteTarefa('${t.id}')"><i data-lucide="trash-2"></i></button>
+          </div>
+        </div>`;
+      }).join('')
+    }`);
+  lucide.createIcons();
+}
+
+async function toggleTarefa(id, currentStatus) {
+  const novo = currentStatus==='concluida' ? 'pendente' : 'concluida';
+  const upd = {status:novo};
+  if(novo==='concluida') upd.concluida_em = new Date().toISOString();
+  await sb.from('tarefas').update(upd).eq('id',id);
+  await tarefas();
+}
+
+async function openTarefaModal(id=null) {
+  const [{data:cls},{data:negs}] = await Promise.all([
+    sb.from('clientes').select('id,nome'),
+    sb.from('negocios').select('id,titulo'),
+  ]);
+  let t={};
+  if(id){const {data}=await sb.from('tarefas').select('*').eq('id',id).single();t=data||{};}
+  const clOpts={'':'Nenhum',...Object.fromEntries((cls||[]).map(x=>[x.id,x.nome]))};
+  const negOpts={'':'Nenhum',...Object.fromEntries((negs||[]).map(x=>[x.id,x.titulo]))};
+  openModal(id?'Editar Tarefa':'Nova Tarefa',`
+    ${ni('t-titulo','Título','text','',true)}
+    <div class="f-row">
+      ${ns('t-tipo','Tipo',Object.fromEntries(Object.entries(TIPO_TAREFA)),t.tipo||'tarefa')}
+      ${ns('t-prio','Prioridade',{baixa:'Baixa',media:'Média',alta:'Alta',urgente:'Urgente'},t.prioridade||'media')}
+    </div>
+    <div class="f-row">
+      ${ns('t-status','Status',{pendente:'Pendente',em_progresso:'Em andamento',concluida:'Concluída'},t.status||'pendente')}
+      ${ni('t-prazo','Prazo','date','')}
+    </div>
+    <div class="f-row">
+      ${ns('t-cid','Cliente',clOpts,t.cliente_id||'')}
+      ${ns('t-nid','Negócio',negOpts,t.negocio_id||'')}
+    </div>
+    <div class="f-group"><label class="f-label">Descrição</label><textarea id="t-desc">${t.descricao||''}</textarea></div>`,
+    `<button class="btn btn-gh" onclick="closeModal()">Cancelar</button>
+     ${id?`<button class="btn btn-danger btn-xs" onclick="deleteTarefa('${id}')"><i data-lucide="trash-2"></i></button>`:''}
+     <button class="btn btn-p" onclick="saveTarefa('${id||''}')"><i data-lucide="save"></i>${id?'Salvar':'Criar'}</button>`
+  );
+  if(id){
+    document.getElementById('t-titulo').value=t.titulo||'';
+    document.getElementById('t-desc').value=t.descricao||'';
+    if(t.prazo)document.getElementById('t-prazo').value=t.prazo.slice(0,10);
+    ['tipo','prio','status','cid','nid'].forEach(k=>{
+      const map={tipo:'tipo',prio:'prioridade',status:'status',cid:'cliente_id',nid:'negocio_id'};
+      const el=document.getElementById('t-'+k);
+      if(el&&t[map[k]])el.value=t[map[k]];
+    });
+  }
+}
+
+async function saveTarefa(id) {
+  const titulo=v('t-titulo');if(!titulo){toast('Título obrigatório',false);return;}
+  const payload={titulo,tipo:v('t-tipo'),prioridade:v('t-prio'),status:v('t-status'),
+    prazo:v('t-prazo')||null,cliente_id:v('t-cid')||null,negocio_id:v('t-nid')||null,
+    descricao:v('t-desc'),user_id:CURRENT_USER.id};
+  let err;
+  if(id){({error:err}=await sb.from('tarefas').update(payload).eq('id',id));}
+  else  {({error:err}=await sb.from('tarefas').insert(payload));}
+  if(err){toast(err.message,false);return;}
+  closeModal();toast(id?'Tarefa salva!':'Tarefa criada!');await tarefas();
+}
+
+async function deleteTarefa(id){if(!confirm('Remover tarefa?'))return;await sb.from('tarefas').delete().eq('id',id);closeModal();toast('Removida.');await tarefas();}
+
+// ────────────────────────────────────────────
+// FINANCEIRO
+// ────────────────────────────────────────────
+async function financeiro() {
+  const [{data:custos},{data:receitas}] = await Promise.all([
+    sb.from('custos').select('*').order('created_at',{ascending:false}),
+    sb.from('receitas').select('*').order('data',{ascending:false}),
+  ]);
+
+  const custoFixo = (custos||[]).filter(c=>c.ativo).reduce((a,c)=>{
+    if(c.recorrencia==='mensal') return a+(c.valor||0);
+    if(c.recorrencia==='anual')  return a+(c.valor||0)/12;
+    return a;
+  },0);
+  const totalReceita = (receitas||[]).reduce((a,r)=>a+(r.valor||0),0);
+  const lucro = totalReceita - custoFixo;
+  const col = lucro>=0?'#2ECC71':'#FF6B6B';
+  const REC_LABELS={unico:'Único',mensal:'Mensal',anual:'Anual'};
+
+  set('page-content',`
+  <div class="g4" style="margin-bottom:20px;">
+    <div class="card"><div class="icon-box ib-g"><i data-lucide="arrow-up-circle"></i></div><div class="c-lbl">Receita Total</div><div class="c-val" style="color:#2ECC71;">${fmt(totalReceita)}</div></div>
+    <div class="card"><div class="icon-box ib-r"><i data-lucide="arrow-down-circle"></i></div><div class="c-lbl">Custos Mensais</div><div class="c-val" style="color:#FF6B6B;">${fmt(custoFixo)}</div></div>
+    <div class="card"><div class="icon-box ib-o"><i data-lucide="trending-up"></i></div><div class="c-lbl">Lucro Líquido</div><div class="c-val" style="color:${col};">${fmt(lucro)}</div></div>
+    <div class="card"><div class="icon-box ib-y"><i data-lucide="percent"></i></div><div class="c-lbl">Margem</div><div class="c-val" style="color:#F5A623;">${totalReceita>0?(lucro/totalReceita*100).toFixed(1)+'%':'—'}</div></div>
+  </div>
+
+  <div class="g2">
+    <div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div class="c-lbl" style="margin:0;">Custos Operacionais</div>
+        <button class="btn btn-p btn-xs" onclick="openCustoModal()"><i data-lucide="plus"></i>Novo</button>
+      </div>
+      <div class="tbl-wrap">
+        ${(custos&&custos.length)
+          ?custos.map(c=>`<div class="fin-row">
+            <div>
+              <div class="fin-desc">${c.descricao}</div>
+              <div class="fin-meta">${c.categoria||''} · ${REC_LABELS[c.recorrencia]||c.recorrencia}${c.data_vencimento?' · vence '+fmtDate(c.data_vencimento):''}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div>
+                <div class="fin-val" style="color:#FF6B6B;">${fmt(c.valor)}</div>
+                ${c.recorrencia==='anual'?`<div style="font-size:10px;color:#3A3835;font-family:'JetBrains Mono',monospace;">${fmt(c.valor/12)}/mês</div>`:''}
+              </div>
+              <div style="display:flex;gap:5px;">
+                <button class="btn btn-gh btn-xs" onclick="openCustoModal('${c.id}')"><i data-lucide="pencil"></i></button>
+                <button class="btn btn-danger btn-xs" onclick="deleteCusto('${c.id}')"><i data-lucide="trash-2"></i></button>
+              </div>
+            </div>
+          </div>`).join('')
+          :'<div class="empty" style="padding:24px;"><i data-lucide="receipt"></i><p>Nenhum custo</p></div>'
+        }
+      </div>
+    </div>
+
+    <div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div class="c-lbl" style="margin:0;">Receitas Recebidas</div>
+        <button class="btn btn-p btn-xs" onclick="openReceitaModal()"><i data-lucide="plus"></i>Nova</button>
+      </div>
+      <div class="tbl-wrap">
+        ${(receitas&&receitas.length)
+          ?receitas.map(r=>`<div class="fin-row">
+            <div>
+              <div class="fin-desc">${r.descricao}</div>
+              <div class="fin-meta">${fmtDate(r.data)}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div class="fin-val" style="color:#2ECC71;">${fmt(r.valor)}</div>
+              <button class="btn btn-danger btn-xs" onclick="deleteReceita('${r.id}')"><i data-lucide="trash-2"></i></button>
+            </div>
+          </div>`).join('')
+          :'<div class="empty" style="padding:24px;"><i data-lucide="circle-dollar-sign"></i><p>Nenhuma receita</p></div>'
+        }
+      </div>
+    </div>
+  </div>`);
+  lucide.createIcons();
+}
+
+async function openCustoModal(id=null) {
+  let c={};
+  if(id){const {data}=await sb.from('custos').select('*').eq('id',id).single();c=data||{};}
+  openModal(id?'Editar Custo':'Novo Custo',`
+    ${ni('cs-desc','Descrição','text','Ex: Business Email',true)}
+    <div class="f-row">
+      ${ni('cs-val','Valor (R$)','number','0',true)}
+      ${ns('cs-rec','Recorrência',{unico:'Único',mensal:'Mensal',anual:'Anual'},c.recorrencia||'mensal')}
+    </div>
+    <div class="f-row">
+      ${ni('cs-cat','Categoria','text','infraestrutura')}
+      ${ni('cs-venc','Data Vencimento','date','')}
+    </div>`,
+    `<button class="btn btn-gh" onclick="closeModal()">Cancelar</button>
+     <button class="btn btn-p" onclick="saveCusto('${id||''}')"><i data-lucide="save"></i>${id?'Salvar':'Criar'}</button>`
+  );
+  if(id){
+    document.getElementById('cs-desc').value=c.descricao||'';
+    document.getElementById('cs-val').value=c.valor||'';
+    document.getElementById('cs-cat').value=c.categoria||'';
+    if(c.data_vencimento)document.getElementById('cs-venc').value=c.data_vencimento;
+    document.getElementById('cs-rec').value=c.recorrencia||'mensal';
+  }
+}
+
+async function saveCusto(id) {
+  const descricao=v('cs-desc'),valor=parseFloat(v('cs-val'));
+  if(!descricao||!valor){toast('Descrição e valor obrigatórios',false);return;}
+  const payload={descricao,valor,recorrencia:v('cs-rec'),categoria:v('cs-cat'),
+    data_vencimento:v('cs-venc')||null,ativo:true,user_id:CURRENT_USER.id};
+  let err;
+  if(id){({error:err}=await sb.from('custos').update(payload).eq('id',id));}
+  else  {({error:err}=await sb.from('custos').insert(payload));}
+  if(err){toast(err.message,false);return;}
+  closeModal();toast('Custo salvo!');await financeiro();
+}
+async function deleteCusto(id){if(!confirm('Remover custo?'))return;await sb.from('custos').delete().eq('id',id);toast('Removido.');await financeiro();}
+
+async function openReceitaModal() {
+  const {data:negs}=await sb.from('negocios').select('id,titulo');
+  const negOpts={'':'Nenhum',...Object.fromEntries((negs||[]).map(x=>[x.id,x.titulo]))};
+  openModal('Nova Receita',`
+    ${ni('rc-desc','Descrição','text','Ex: Projeto Feerxs Studio',true)}
+    <div class="f-row">
+      ${ni('rc-val','Valor (R$)','number','0',true)}
+      ${ni('rc-data','Data','date','')}
+    </div>
+    ${ns('rc-nid','Negócio relacionado',negOpts,'')}`,
+    `<button class="btn btn-gh" onclick="closeModal()">Cancelar</button>
+     <button class="btn btn-p" onclick="saveReceita()"><i data-lucide="save"></i>Registrar</button>`
+  );
+  document.getElementById('rc-data').value = new Date().toISOString().slice(0,10);
+}
+
+async function saveReceita() {
+  const descricao=v('rc-desc'),valor=parseFloat(v('rc-val'));
+  if(!descricao||!valor){toast('Preencha os campos obrigatórios',false);return;}
+  const {error}=await sb.from('receitas').insert({descricao,valor,data:v('rc-data'),negocio_id:v('rc-nid')||null,user_id:CURRENT_USER.id});
+  if(error){toast(error.message,false);return;}
+  closeModal();toast('Receita registrada!');await financeiro();
+}
+async function deleteReceita(id){if(!confirm('Remover receita?'))return;await sb.from('receitas').delete().eq('id',id);toast('Removida.');await financeiro();}
+
+// ────────────────────────────────────────────
+// ATIVIDADES
+// ────────────────────────────────────────────
+async function atividades() {
+  const {data:acts}=await sb.from('atividades').select('*').order('created_at',{ascending:false}).limit(100);
+  const TIPO_COLORS={nota:'#4A4845',status_change:'#F5A623',criacao:'#2ECC71',ligacao:'#3A86FF'};
+  set('page-content',`
+  <div class="card">
+    <div class="c-lbl" style="margin-bottom:14px;">Histórico de Atividades</div>
+    ${(acts&&acts.length)
+      ?acts.map(a=>`<div class="tl-item">
+        <div class="tl-dot" style="background:${TIPO_COLORS[a.tipo]||'#333'};margin-top:5px;"></div>
+        <div>
+          <div class="tl-desc">${a.descricao}</div>
+          <div class="tl-time">${fmtDatetime(a.created_at)}</div>
+        </div>
+      </div>`).join('')
+      :'<div class="empty"><i data-lucide="activity"></i><p>Nenhuma atividade registrada</p></div>'
+    }
+  </div>`);
+  lucide.createIcons();
+}
+
+async function logAtividade(tipo, descricao, extra={}) {
+  await sb.from('atividades').insert({tipo,descricao,user_id:CURRENT_USER.id,...extra});
+}
+
+// ────────────────────────────────────────────
+// CONFIGURAÇÕES
+// ────────────────────────────────────────────
+async function config() {
+  const {data:profile}=await sb.from('profiles').select('*').eq('id',CURRENT_USER.id).single();
+  set('page-content',`
+  <div class="g2">
+    <div class="card">
+      <div class="c-lbl" style="margin-bottom:16px;">Perfil</div>
+      <div class="f-group"><label class="f-label">Nome</label><input type="text" id="cfg-nome" value="${profile?.nome||''}" placeholder="Seu nome"></div>
+      <div class="f-group"><label class="f-label">E-mail</label><input type="email" id="cfg-email" value="${CURRENT_USER.email}" disabled style="opacity:.5;cursor:not-allowed;"></div>
+      <div class="f-group"><label class="f-label">Empresa</label><input type="text" id="cfg-empresa" value="${profile?.empresa||'Morph'}" placeholder="Nome da empresa"></div>
+      <button class="btn btn-p" onclick="saveProfile()"><i data-lucide="save"></i>Salvar Perfil</button>
+    </div>
+    <div class="card">
+      <div class="c-lbl" style="margin-bottom:16px;">Segurança</div>
+      <div class="f-group"><label class="f-label">Nova Senha</label><input type="password" id="cfg-pw1" placeholder="Nova senha (mín. 6 chars)"></div>
+      <div class="f-group"><label class="f-label">Confirmar Senha</label><input type="password" id="cfg-pw2" placeholder="Confirme a senha"></div>
+      <button class="btn btn-gh" onclick="savePassword()"><i data-lucide="lock"></i>Alterar Senha</button>
+      <hr class="d">
+      <div class="c-lbl" style="margin-bottom:10px;">Supabase</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#4A4845;line-height:1.7;">
+        URL: ${SUPABASE_URL}<br>
+        Usuário: ${CURRENT_USER.id.slice(0,12)}...
+      </div>
+    </div>
+  </div>`);
+  lucide.createIcons();
+}
+
+async function saveProfile() {
+  const {error}=await sb.from('profiles').upsert({id:CURRENT_USER.id,nome:v('cfg-nome'),empresa:v('cfg-empresa'),email:CURRENT_USER.email});
+  if(error){toast(error.message,false);return;}
+  toast('Perfil atualizado!');
+}
+
+async function savePassword() {
+  const p1=v('cfg-pw1'),p2=v('cfg-pw2');
+  if(!p1){toast('Digite a nova senha',false);return;}
+  if(p1!==p2){toast('Senhas não conferem',false);return;}
+  if(p1.length<6){toast('Mínimo 6 caracteres',false);return;}
+  const {error}=await sb.auth.updateUser({password:p1});
+  if(error){toast(error.message,false);return;}
+  toast('Senha alterada!');
+  document.getElementById('cfg-pw1').value='';
+  document.getElementById('cfg-pw2').value='';
+}
+
+// ── BOOT ──
+init();
+</script>
+</body>
+</html>
