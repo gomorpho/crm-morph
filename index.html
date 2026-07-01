@@ -222,8 +222,80 @@ tr:hover .td-actions{opacity:1;}
 .toast-ok i{color:#2ECC71;}
 .toast-err i{color:#FF6B6B;}
 
-/* ── RESPONSIVE ── */
-@media(max-width:900px){.g4{grid-template-columns:repeat(2,1fr);}.sidebar{width:0;overflow:hidden;position:absolute;z-index:100;}}
+/* ── HAMBURGER ── */
+.btn-menu{display:none;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);cursor:pointer;color:#aaa;flex-shrink:0;}
+.btn-menu i{width:16px;height:16px;}
+.btn-menu:hover{background:rgba(255,255,255,.1);color:#fff;}
+.sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:199;}
+.sidebar-backdrop.open{display:block;}
+
+/* ── RESPONSIVE — TABLET ── */
+@media(max-width:900px){
+  .g4{grid-template-columns:repeat(2,1fr);}
+  .g3{grid-template-columns:1fr 1fr;}
+}
+
+/* ── RESPONSIVE — MOBILE ── */
+@media(max-width:640px){
+  /* Sidebar deslizante */
+  .sidebar{
+    position:fixed;left:-220px;top:0;bottom:0;
+    z-index:200;width:210px;
+    transition:left .25s cubic-bezier(.4,0,.2,1);
+    box-shadow:none;
+  }
+  .sidebar.open{left:0;box-shadow:6px 0 30px rgba(0,0,0,.7);}
+  .btn-menu{display:flex;}
+
+  /* Layout */
+  #app{flex-direction:column;}
+  .content{width:100%;overflow:hidden;}
+  .topbar{padding:10px 14px;gap:10px;}
+  .topbar-right{gap:6px;}
+  .page{padding:14px 12px;}
+  .page-title{font-size:14px;}
+
+  /* Grids */
+  .g4{grid-template-columns:1fr 1fr;}
+  .g3{grid-template-columns:1fr 1fr;}
+  .g2{grid-template-columns:1fr;}
+  .card{padding:13px;}
+  .c-val{font-size:22px;}
+
+  /* Formulários */
+  .f-row{grid-template-columns:1fr;}
+
+  /* Tabelas */
+  .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  table{min-width:520px;}
+  .search-inp{width:100%;max-width:100%;}
+  .tbl-toolbar{gap:8px;}
+
+  /* Kanban */
+  .k-col{width:78vw;min-width:220px;}
+  .tk-col{width:82vw;min-width:240px;}
+  .kanban,.tk-board{scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding:0 12px 20px;}
+  .k-col,.tk-col{scroll-snap-align:start;}
+
+  /* Negócios dashboard */
+  .g2 .tbl-wrap{margin-bottom:12px;}
+
+  /* Modal → bottom-sheet */
+  .overlay{padding:0;align-items:flex-end;}
+  .modal{
+    width:100%;max-width:100%;
+    border-radius:18px 18px 0 0;
+    max-height:88vh;
+    padding:20px 16px;
+  }
+
+  /* Toast */
+  #toast{left:14px;right:14px;bottom:14px;width:auto;}
+
+  /* Fin rows */
+  .fin-row{flex-direction:column;align-items:flex-start;gap:6px;}
+  .fin-row>div:last-child{align-self:flex-end;}
+}
 </style>
 </head>
 <body>
@@ -264,10 +336,16 @@ tr:hover .td-actions{opacity:1;}
     </div>
   </nav>
 
+  <!-- SIDEBAR BACKDROP (mobile) -->
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
+
   <!-- CONTENT -->
   <div class="content">
     <div class="topbar">
-      <div class="page-title" id="page-title">Dashboard</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button class="btn-menu" id="btn-menu" onclick="toggleSidebar()"><i data-lucide="menu"></i></button>
+        <div class="page-title" id="page-title">Dashboard</div>
+      </div>
       <div class="topbar-right" id="topbar-actions"></div>
     </div>
     <div class="page" id="page-content"></div>
@@ -319,11 +397,25 @@ const PRIO_META = {
 };
 const TIPO_TAREFA = {
   tarefa:    'Tarefa',
-  ligacao:   'Ligação',
+  ligacao:   'Mensagem/Ligação',
   email:     'E-mail',
   reuniao:   'Reunião',
   follow_up: 'Follow-up',
 };
+
+// ────────────────────────────────────────────
+// SIDEBAR MOBILE
+// ────────────────────────────────────────────
+function toggleSidebar() {
+  const sb2 = document.querySelector('.sidebar');
+  const bd  = document.getElementById('sidebar-backdrop');
+  const open = sb2.classList.toggle('open');
+  bd.classList.toggle('open', open);
+}
+function closeSidebar() {
+  document.querySelector('.sidebar').classList.remove('open');
+  document.getElementById('sidebar-backdrop').classList.remove('open');
+}
 
 // ────────────────────────────────────────────
 // AUTH
@@ -392,6 +484,7 @@ const PAGE_ACTIONS = {
 
 async function goto(page, el) {
   CURRENT_PAGE = page;
+  closeSidebar();
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   if (el) el.classList.add('active');
   document.getElementById('page-title').textContent = PAGE_TITLES[page] || page;
@@ -728,22 +821,42 @@ async function saveContato(id) {
 async function deleteContato(id){if(!confirm('Remover contato?'))return;await sb.from('contatos').delete().eq('id',id);toast('Removido.');await contatos();}
 
 // ────────────────────────────────────────────
-// NEGÓCIOS — KANBAN
+// NEGÓCIOS — KANBAN + FILTROS
 // ────────────────────────────────────────────
+let _negFiltroCliente = '';
+let _negFiltroTexto   = '';
+
 async function negocios() {
   const [{data:negs},{data:cls}] = await Promise.all([
     sb.from('negocios').select('*').order('updated_at',{ascending:false}),
-    sb.from('clientes').select('id,nome'),
+    sb.from('clientes').select('id,nome').order('nome'),
   ]);
   const clMap = Object.fromEntries((cls||[]).map(c=>[c.id,c.nome]));
   const statuses = ['prospeccao','negociacao','proposta','fechado','perdido'];
   const COL_COLORS = {prospeccao:'#3A86FF',negociacao:'#E8490F',proposta:'#F5A623',fechado:'#2ECC71',perdido:'#FF6B6B'};
 
+  const clOpts = (cls||[]).map(c=>`<option value="${c.id}" ${_negFiltroCliente===c.id?'selected':''}>${c.nome}</option>`).join('');
+
+  let all = negs||[];
+  if(_negFiltroCliente) all = all.filter(n=>n.cliente_id===_negFiltroCliente);
+  if(_negFiltroTexto)   all = all.filter(n=>n.titulo.toLowerCase().includes(_negFiltroTexto.toLowerCase()));
+
+  const totalPipeline = all.filter(n=>!['fechado','perdido'].includes(n.status)).reduce((a,n)=>a+(n.valor||0),0);
+
   set('page-content',`
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+    <input class="search-inp" style="width:200px;" type="text" placeholder="Buscar negócio..." value="${_negFiltroTexto}"
+      oninput="_negFiltroTexto=this.value;negocios()">
+    <select style="width:180px;padding:7px 11px;" onchange="_negFiltroCliente=this.value;negocios()">
+      <option value="">Todos os clientes</option>${clOpts}
+    </select>
+    ${(_negFiltroCliente||_negFiltroTexto)?`<button class="btn btn-gh btn-sm" onclick="_negFiltroCliente='';_negFiltroTexto='';negocios()"><i data-lucide="x"></i>Limpar</button>`:''}
+    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#4A4845;margin-left:auto;">Pipeline: <span style="color:#E8490F;">${fmt(totalPipeline)}</span></span>
+  </div>
   <div class="kanban">
     ${statuses.map(s=>{
       const sm=STATUS_NEG[s];
-      const cards=(negs||[]).filter(n=>n.status===s);
+      const cards=all.filter(n=>n.status===s);
       const total=cards.reduce((a,n)=>a+(n.valor||0),0);
       return `<div class="k-col">
         <div class="k-col-hdr">
@@ -950,7 +1063,13 @@ async function openTarefaModal(id=null, defaultStatus='pendente') {
   openModal(id?'Editar Tarefa':'Nova Tarefa',`
     ${ni('t-titulo','Título','text','',true)}
     <div class="f-row">
-      ${ns('t-tipo','Tipo',Object.fromEntries(Object.entries(TIPO_TAREFA)),t.tipo||'tarefa')}
+      <div class="f-group">
+        <label class="f-label">Tipo</label>
+        <input type="text" id="t-tipo" list="tipo-list" placeholder="Ex: Reunião, E-mail..." value="${t.tipo||''}">
+        <datalist id="tipo-list">
+          ${Object.values(TIPO_TAREFA).map(v=>`<option value="${v}">`).join('')}
+        </datalist>
+      </div>
       ${ns('t-prio','Prioridade',{baixa:'Baixa',media:'Média',alta:'Alta',urgente:'Urgente'},t.prioridade||'media')}
     </div>
     <div class="f-row">
@@ -970,8 +1089,11 @@ async function openTarefaModal(id=null, defaultStatus='pendente') {
     document.getElementById('t-titulo').value=t.titulo||'';
     document.getElementById('t-desc').value=t.descricao||'';
     if(t.prazo)document.getElementById('t-prazo').value=t.prazo.slice(0,10);
-    ['tipo','prio','status','cid','nid'].forEach(k=>{
-      const map={tipo:'tipo',prio:'prioridade',status:'status',cid:'cliente_id',nid:'negocio_id'};
+    // tipo: converte chave antiga (ex: 'ligacao') para label legível se existir
+    const tipoVal = TIPO_TAREFA[t.tipo] || t.tipo || '';
+    document.getElementById('t-tipo').value = tipoVal;
+    ['prio','status','cid','nid'].forEach(k=>{
+      const map={prio:'prioridade',status:'status',cid:'cliente_id',nid:'negocio_id'};
       const el=document.getElementById('t-'+k);
       if(el&&t[map[k]])el.value=t[map[k]];
     });
