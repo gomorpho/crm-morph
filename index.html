@@ -162,22 +162,27 @@ tr:hover .td-actions{opacity:1;}
 .k-prazo.atrasado{color:#FF6B6B;}
 .k-empty{padding:16px;text-align:center;font-size:12px;color:#2a2a2a;}
 
-/* ── TAREFAS ── */
-.task-item{display:flex;align-items:flex-start;gap:11px;padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.04);transition:background .14s;}
-.task-item:last-child{border-bottom:none;}
-.task-item:hover{background:rgba(255,255,255,.02);}
-.task-check{width:16px;height:16px;border-radius:50%;border:2px solid #333;flex-shrink:0;margin-top:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .14s;}
-.task-check.done{background:#2ECC71;border-color:#2ECC71;}
-.task-check.done i{display:block;}
-.task-check i{display:none;width:10px;height:10px;color:#fff;}
-.task-body{flex:1;min-width:0;}
-.task-title{font-size:13px;font-weight:500;color:#D0CEC9;margin-bottom:3px;}
-.task-title.done{text-decoration:line-through;color:#4A4845;}
-.task-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-.task-prazo{font-family:'JetBrains Mono',monospace;font-size:10px;color:#4A4845;}
-.task-prazo.vence{color:#F5A623;}
-.task-prazo.atrasado{color:#FF6B6B;}
-.task-right{display:flex;align-items:center;gap:7px;flex-shrink:0;}
+/* ── TAREFAS KANBAN ── */
+.tk-board{display:flex;gap:14px;overflow-x:auto;padding-bottom:16px;align-items:flex-start;min-height:calc(100vh - 200px);}
+.tk-col{flex-shrink:0;width:280px;background:#191919;border:1px solid rgba(255,255,255,.07);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;}
+.tk-col-hdr{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.tk-col-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.tk-col-title{font-size:12.5px;font-weight:600;flex:1;}
+.tk-count{font-family:'JetBrains Mono',monospace;font-size:10px;color:#4A4845;background:rgba(255,255,255,.06);border-radius:100px;padding:2px 7px;}
+.tk-body{padding:10px;display:flex;flex-direction:column;gap:8px;min-height:80px;flex:1;transition:background .14s;}
+.tk-body.drag-over{background:rgba(232,73,15,.05);border-radius:8px;}
+.tk-card{background:#222;border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:12px;cursor:pointer;transition:border-color .14s,opacity .14s,transform .1s;user-select:none;}
+.tk-card:hover{border-color:rgba(232,73,15,.3);}
+.tk-card.dragging{opacity:.4;transform:scale(.97);}
+.tk-card-title{font-size:12.5px;font-weight:600;color:#fff;margin-bottom:5px;line-height:1.4;}
+.tk-card-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
+.tk-card-footer{display:flex;align-items:center;justify-content:space-between;gap:6px;}
+.tk-prazo{font-family:'JetBrains Mono',monospace;font-size:10px;color:#4A4845;}
+.tk-prazo.vence{color:#F5A623;}
+.tk-prazo.atrasado{color:#FF6B6B;}
+.tk-empty{padding:24px 16px;text-align:center;font-size:12px;color:#2a2a2a;pointer-events:none;}
+.tk-add{display:flex;align-items:center;gap:6px;padding:8px 10px;margin:0 10px 10px;border:1px dashed rgba(255,255,255,.08);border-radius:8px;font-size:12px;color:#4A4845;cursor:pointer;transition:all .14s;}
+.tk-add:hover{border-color:rgba(232,73,15,.4);color:#E8490F;}
 
 /* ── PRIORIDADE ── */
 .prio-urgente{color:#FF6B6B;}
@@ -685,7 +690,7 @@ async function contatos() {
 }
 
 async function openContatoModal(id=null) {
-  const {data:cls} = await sb.from('clientes').select('id,nome').eq('status','ativo');
+  const {data:cls} = await sb.from('clientes').select('id,nome').order('nome');
   let c = {};
   if (id) { const {data}=await sb.from('contatos').select('*').eq('id',id).single(); c=data||{}; }
   const clOpts = {'':'Nenhuma',...Object.fromEntries((cls||[]).map(x=>[x.id,x.nome]))};
@@ -839,9 +844,14 @@ async function changeNegStatus(id, status) {
 async function deleteNegocio(id){if(!confirm('Remover negócio?'))return;await sb.from('negocios').delete().eq('id',id);closeModal();toast('Removido.');await negocios();}
 
 // ────────────────────────────────────────────
-// TAREFAS
+// TAREFAS — KANBAN
 // ────────────────────────────────────────────
-let _tfFilter='pendente';
+const TK_COLS = [
+  {key:'pendente',    label:'Pendente',      dot:'#F5A623', addTxt:'+ Adicionar tarefa'},
+  {key:'em_progresso',label:'Em Andamento',  dot:'#3A86FF', addTxt:'+ Adicionar tarefa'},
+  {key:'concluida',   label:'Concluída',     dot:'#2ECC71', addTxt:'+ Adicionar tarefa'},
+];
+
 async function tarefas() {
   const [{data:tfs},{data:cls}] = await Promise.all([
     sb.from('tarefas').select('*').order('prazo',{ascending:true,nullsFirst:false}),
@@ -849,44 +859,74 @@ async function tarefas() {
   ]);
   const clMap=Object.fromEntries((cls||[]).map(c=>[c.id,c.nome]));
   const all=tfs||[];
-  const counts={todos:all.length,pendente:0,em_progresso:0,concluida:0};
-  all.forEach(t=>{if(counts[t.status]!==undefined)counts[t.status]++;});
-  const filtered=_tfFilter==='todos'?all:all.filter(t=>t.status===_tfFilter);
 
-  set('page-content',`
-  <div class="tbl-wrap">
-    <div class="tbl-toolbar">
-      <div class="tabs">
-        ${[['todos','Todas'],['pendente','Pendentes'],['em_progresso','Em andamento'],['concluida','Concluídas']].map(([k,l])=>
-          `<button class="tab ${_tfFilter===k?'active':''}" onclick="_tfFilter='${k}';tarefas();">${l}<span class="tab-cnt">${counts[k]||0}</span></button>`
-        ).join('')}
+  const cols = TK_COLS.map(col=>{
+    const cards = all.filter(t=>t.status===col.key);
+    return `
+    <div class="tk-col" data-col="${col.key}">
+      <div class="tk-col-hdr">
+        <span class="tk-col-dot" style="background:${col.dot}"></span>
+        <span class="tk-col-title">${col.label}</span>
+        <span class="tk-count">${cards.length}</span>
       </div>
-    </div>
-    ${filtered.length===0
-      ?'<div class="empty"><i data-lucide="circle-check"></i><p>Nenhuma tarefa aqui</p></div>'
-      :filtered.map(t=>{
-        const pi=prazoInfo(t.prazo?t.prazo.slice(0,10):null);
-        const pm=PRIO_META[t.prioridade]||PRIO_META.media;
-        const clNome=t.cliente_id?clMap[t.cliente_id]:'';
-        const done=t.status==='concluida';
-        return `<div class="task-item">
-          <div class="task-check ${done?'done':''}" onclick="toggleTarefa('${t.id}','${t.status}')"><i data-lucide="check"></i></div>
-          <div class="task-body" onclick="openTarefaModal('${t.id}')" style="cursor:pointer;">
-            <div class="task-title ${done?'done':''}">${t.titulo}</div>
-            <div class="task-meta">
-              <span class="badge bgr">${TIPO_TAREFA[t.tipo]||t.tipo}</span>
-              ${clNome?`<span style="font-size:11px;color:#4A4845;">${clNome}</span>`:''}
-              ${pi?`<span class="task-prazo ${pi.cls}">${pi.txt}</span>`:''}
-            </div>
-          </div>
-          <div class="task-right">
-            <span class="${pm.cls}" style="font-size:11px;font-weight:600;">${pm.l}</span>
-            <button class="btn btn-danger btn-xs" onclick="deleteTarefa('${t.id}')"><i data-lucide="trash-2"></i></button>
-          </div>
-        </div>`;
-      }).join('')
-    }`);
+      <div class="tk-body" id="tkb-${col.key}"
+           ondragover="tkDragOver(event)" ondragleave="tkDragLeave(event)" ondrop="tkDrop(event,'${col.key}')">
+        ${cards.length===0?`<div class="tk-empty">Nenhuma tarefa</div>`:
+          cards.map(t=>tkCard(t,clMap)).join('')}
+      </div>
+      <div class="tk-add" onclick="openTarefaModal(null,'${col.key}')"><i data-lucide="plus" style="width:13px;height:13px;"></i>${col.addTxt}</div>
+    </div>`;
+  }).join('');
+
+  set('page-content',`<div class="tk-board">${cols}</div>`);
   lucide.createIcons();
+  initTkDrag();
+}
+
+function tkCard(t, clMap) {
+  const pi   = prazoInfo(t.prazo?t.prazo.slice(0,10):null);
+  const pm   = PRIO_META[t.prioridade]||PRIO_META.media;
+  const clNome = t.cliente_id?clMap[t.cliente_id]:'';
+  const prio_colors = {baixa:'#6C7A89',media:'#F5A623',alta:'#E8490F',urgente:'#FF6B6B'};
+  const pColor = prio_colors[t.prioridade]||'#6C7A89';
+  return `<div class="tk-card" draggable="true" data-id="${t.id}" data-status="${t.status}" onclick="openTarefaModal('${t.id}')">
+    <div class="tk-card-title">${t.titulo}</div>
+    ${clNome?`<div style="font-size:11px;color:#4A4845;margin-bottom:6px;">${clNome}</div>`:''}
+    <div class="tk-card-meta">
+      <span class="badge bgr" style="font-size:10px;">${TIPO_TAREFA[t.tipo]||t.tipo}</span>
+      <span style="font-size:10px;font-weight:600;color:${pColor};">${pm.l}</span>
+    </div>
+    <div class="tk-card-footer">
+      ${pi?`<span class="tk-prazo ${pi.cls}">${pi.txt}</span>`:'<span></span>'}
+      <button class="btn btn-danger btn-xs" onclick="event.stopPropagation();deleteTarefa('${t.id}')"><i data-lucide="trash-2"></i></button>
+    </div>
+  </div>`;
+}
+
+let _tkDragId=null;
+function initTkDrag() {
+  document.querySelectorAll('.tk-card').forEach(card=>{
+    card.addEventListener('dragstart', e=>{
+      _tkDragId=card.dataset.id;
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed='move';
+    });
+    card.addEventListener('dragend', ()=>{ card.classList.remove('dragging'); });
+  });
+}
+function tkDragOver(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+function tkDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+async function tkDrop(e, novoStatus) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if(!_tkDragId) return;
+  const card = document.querySelector(`.tk-card[data-id="${_tkDragId}"]`);
+  if(card && card.dataset.status === novoStatus) return;
+  const upd = {status: novoStatus};
+  if(novoStatus==='concluida') upd.concluida_em = new Date().toISOString();
+  await sb.from('tarefas').update(upd).eq('id',_tkDragId);
+  _tkDragId=null;
+  await tarefas();
 }
 
 async function toggleTarefa(id, currentStatus) {
@@ -897,7 +937,7 @@ async function toggleTarefa(id, currentStatus) {
   await tarefas();
 }
 
-async function openTarefaModal(id=null) {
+async function openTarefaModal(id=null, defaultStatus='pendente') {
   const [{data:cls},{data:negs}] = await Promise.all([
     sb.from('clientes').select('id,nome'),
     sb.from('negocios').select('id,titulo'),
@@ -906,6 +946,7 @@ async function openTarefaModal(id=null) {
   if(id){const {data}=await sb.from('tarefas').select('*').eq('id',id).single();t=data||{};}
   const clOpts={'':'Nenhum',...Object.fromEntries((cls||[]).map(x=>[x.id,x.nome]))};
   const negOpts={'':'Nenhum',...Object.fromEntries((negs||[]).map(x=>[x.id,x.titulo]))};
+  const statusInicial = t.status||defaultStatus;
   openModal(id?'Editar Tarefa':'Nova Tarefa',`
     ${ni('t-titulo','Título','text','',true)}
     <div class="f-row">
@@ -913,7 +954,7 @@ async function openTarefaModal(id=null) {
       ${ns('t-prio','Prioridade',{baixa:'Baixa',media:'Média',alta:'Alta',urgente:'Urgente'},t.prioridade||'media')}
     </div>
     <div class="f-row">
-      ${ns('t-status','Status',{pendente:'Pendente',em_progresso:'Em andamento',concluida:'Concluída'},t.status||'pendente')}
+      ${ns('t-status','Status',{pendente:'Pendente',em_progresso:'Em andamento',concluida:'Concluída'},statusInicial)}
       ${ni('t-prazo','Prazo','date','')}
     </div>
     <div class="f-row">
