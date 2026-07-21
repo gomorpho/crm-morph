@@ -17,15 +17,22 @@ create table if not exists propostas (
 
 alter table propostas enable row level security;
 
--- A página de proposta usa a chave anon só pra INSERIR o registro da
--- assinatura (write-only pro público). Ninguém de fora consegue listar
--- ou ler assinaturas de outros clientes com a chave anon.
+-- Remove a política antiga (só liberava insert pra quem tá "anônimo").
+-- Quem já estiver logado no CRM no mesmo navegador acessa a página de
+-- proposta como usuário autenticado, não anônimo, e a política antiga
+-- bloqueava esse caso.
+drop policy if exists "Qualquer um pode assinar (insert)" on propostas;
+
+-- Qualquer visitante consegue INSERIR o registro da assinatura,
+-- esteja logado no CRM ou não (write-only pro público: ninguém de
+-- fora consegue listar ou ler assinaturas de outros clientes).
 create policy "Qualquer um pode assinar (insert)"
   on propostas for insert
-  to anon
+  to public
   with check (true);
 
 -- Leitura fica restrita a usuários autenticados do CRM (equipe Morph).
+drop policy if exists "Só a equipe Morph le as propostas" on propostas;
 create policy "Só a equipe Morph le as propostas"
   on propostas for select
   to authenticated
