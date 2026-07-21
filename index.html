@@ -983,6 +983,7 @@ async function propostas() {
           <td><div class="td-actions" style="opacity:1;">
             <button class="btn btn-gh btn-xs" onclick="verAssinaturaProposta('${p.id}')"><i data-lucide="image"></i>Assinatura</button>
             <button class="btn btn-p btn-xs" onclick="baixarPdfProposta('${p.id}','${p.assinante_nome.replace(/'/g,"")}')"><i data-lucide="download"></i>PDF</button>
+            <button class="btn btn-danger btn-xs" onclick="deleteProposta('${p.id}')"><i data-lucide="trash-2"></i></button>
           </div></td>
         </tr>`).join('')}
       </tbody></table>`
@@ -1000,6 +1001,14 @@ async function baixarPdfProposta(id, nomeArquivo) {
   a.href = data.pdf_base64;
   a.download = 'contrato-' + nomeArquivo.trim().replace(/\s+/g, '-').toLowerCase() + '.pdf';
   document.body.appendChild(a); a.click(); a.remove();
+}
+
+async function deleteProposta(id) {
+  if (!confirm('Apagar essa proposta assinada? Não tem como desfazer.')) return;
+  const { error } = await sb.from('propostas').delete().eq('id', id);
+  if (error) { toast(error.message, false); return; }
+  toast('Proposta removida.');
+  await propostas();
 }
 
 async function verAssinaturaProposta(id) {

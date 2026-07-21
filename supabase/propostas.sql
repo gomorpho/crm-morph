@@ -37,3 +37,10 @@ create policy "Só a equipe Morph le as propostas"
   on propostas for select
   to authenticated
   using (true);
+
+-- Apagar (ex: limpar assinaturas de teste) também só pra equipe Morph.
+drop policy if exists "Só a equipe Morph apaga propostas" on propostas;
+create policy "Só a equipe Morph apaga propostas"
+  on propostas for delete
+  to authenticated
+  using (true);
