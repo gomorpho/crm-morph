@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Proposta · Feerxs Studios × Morph</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Playfair+Display:ital@1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --bg: #1A1A1A;
+    --panel: #202020;
+    --panel2: #252525;
+    --border: rgba(255,255,255,0.07);
+    --text: #FFFFFF;
+    --muted: #A3A09A;
+    --muted2: #8C8A85;
+    --accent: #E8490F;
+    --accent2: #F5A623;
+    --green: #2ECC71;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  em { font-family: "Playfair Display", serif; font-style: italic; font-weight: 400; color: var(--accent2); }
+
+  /* ── GATE (código de acesso) ── */
+  #gate {
+    position: fixed; inset: 0; z-index: 500;
+    display: flex; align-items: center; justify-content: center;
+    background: #0F0F0F; padding: 20px;
+  }
+  .gate-box { width: 380px; max-width: 100%; text-align: center; }
+  .gate-mark { width: 34px; height: 34px; border-radius: 18%; transform: rotate(45deg); background: linear-gradient(135deg, var(--accent), var(--accent2)); margin: 0 auto 26px; box-shadow: 0 10px 34px rgba(232,73,15,0.4); }
+  .gate-box h2 { font-family: "Manrope", sans-serif; font-size: 1.3rem; font-weight: 700; margin: 0 0 6px; }
+  .gate-box p { color: var(--muted); font-size: 0.88rem; margin: 0 0 22px; }
+  .gate-box input { width: 100%; text-align: center; letter-spacing: 0.1em; padding: 13px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-size: 1rem; font-family: "JetBrains Mono", monospace; }
+  .gate-box input:focus { outline: none; border-color: var(--accent); }
+  .gate-box button { width: 100%; margin-top: 12px; padding: 13px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border: none; border-radius: 10px; color: #1A1A1A; font-family: "Manrope", sans-serif; font-weight: 700; font-size: 0.95rem; cursor: pointer; }
+  .gate-err { color: #e0837f; font-size: 0.82rem; margin-top: 10px; min-height: 1em; }
+
+  #main { display: none; }
+
+  /* ── HERO ── */
+  .hero {
+    position: relative;
+    overflow: hidden;
+    padding: 70px 20px 60px;
+    background:
+      radial-gradient(560px 560px at 85% -10%, rgba(232,73,15,0.32), transparent 60%),
+      radial-gradient(420px 420px at -5% 90%, rgba(245,166,35,0.14), transparent 60%),
+      linear-gradient(180deg, #0C0D10 0%, #14151A 60%, #1A1A1A 100%);
+  }
+  .hero-grid {
+    position: absolute; inset: 0;
+    background-image: linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+    background-size: 46px 46px;
+    -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0.9), transparent 78%);
+    mask-image: linear-gradient(180deg, rgba(0,0,0,0.9), transparent 78%);
+  }
+  .hero-inner { position: relative; max-width: 720px; margin: 0 auto; }
+  .brand { display: flex; align-items: center; gap: 11px; margin-bottom: 46px; }
+  .brand img { height: 26px; display: block; }
+  .eyebrow { font-family: "JetBrains Mono", monospace; font-size: 0.7rem; font-weight: 500; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent); margin: 0 0 14px; }
+  .rule { width: 56px; height: 3px; background: linear-gradient(90deg, var(--accent), var(--accent2)); border: none; margin: 0 0 20px; border-radius: 2px; }
+  .hero h1 { font-family: "Manrope", sans-serif; font-size: 2.4rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1.08; margin: 0 0 16px; }
+  .hero p.lead { color: var(--muted); margin: 0; font-size: 1.02rem; font-weight: 500; max-width: 560px; }
+
+  .wrap { max-width: 720px; margin: 0 auto; padding: 0 20px 90px; }
+  section { margin-top: 46px; }
+  .sec-label { font-family: "JetBrains Mono", monospace; font-size: 0.7rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); margin: 0 0 14px; }
+  .sec-title { font-family: "Manrope", sans-serif; font-size: 1.4rem; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 10px; }
+  .sec-desc { color: var(--muted); font-size: 0.95rem; margin: 0 0 22px; max-width: 600px; }
+
+  /* ── DELIVERABLE CARDS ── */
+  .deliv-grid { display: grid; gap: 12px; }
+  .deliv-card { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 22px; }
+  .deliv-card .num { font-family: "JetBrains Mono", monospace; font-size: 0.78rem; color: var(--accent2); margin-bottom: 8px; }
+  .deliv-card h3 { font-family: "Manrope", sans-serif; font-size: 1.05rem; font-weight: 700; margin: 0 0 8px; }
+  .deliv-card p { color: var(--muted); font-size: 0.9rem; margin: 0; }
+  .deliv-card ul { margin: 10px 0 0; padding-left: 18px; color: var(--muted); font-size: 0.88rem; }
+  .deliv-card li { margin-bottom: 4px; }
+
+  /* ── STEPS ── */
+  .steps { display: flex; flex-direction: column; gap: 0; }
+  .step { display: flex; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+  .step:last-child { border-bottom: none; }
+  .step-n { font-family: "JetBrains Mono", monospace; font-size: 0.8rem; color: var(--accent); width: 26px; flex-shrink: 0; }
+  .step-t { font-weight: 600; font-size: 0.95rem; margin-bottom: 3px; }
+  .step-d { color: var(--muted); font-size: 0.88rem; }
+
+  /* ── INVESTMENT ── */
+  .inv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .inv-card { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 22px; text-align: center; }
+  .inv-card.destaque { border-color: rgba(232,73,15,0.35); background: linear-gradient(180deg, rgba(232,73,15,0.08), var(--panel) 60%); position: relative; }
+  .inv-tag { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #1A1A1A; font-family: "JetBrains Mono", monospace; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 4px 10px; border-radius: 100px; }
+  .inv-card .lbl { font-family: "JetBrains Mono", monospace; font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted2); margin-bottom: 10px; }
+  .inv-card .val { font-family: "Manrope", sans-serif; font-size: 1.9rem; font-weight: 800; }
+  .inv-card .val span { font-size: 0.95rem; color: var(--muted); font-weight: 600; }
+  .inv-card .obs { color: var(--muted); font-size: 0.8rem; margin-top: 8px; }
+  .inv-note { color: var(--muted); font-size: 0.85rem; margin-top: 14px; }
+  .inv-note strong { color: var(--text); }
+
+  /* ── CONTRATO ── */
+  .contrato-toggle { display: flex; align-items: center; justify-content: space-between; cursor: pointer; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 18px 22px; }
+  .contrato-toggle span { font-weight: 600; font-size: 0.95rem; }
+  .contrato-toggle .chev { color: var(--muted); transition: transform 0.2s; }
+  .contrato-toggle.open .chev { transform: rotate(180deg); }
+  .contrato {
+    display: none;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 14px 14px;
+    padding: 26px;
+    max-height: 420px;
+    overflow-y: auto;
+    font-size: 0.9rem;
+  }
+  .contrato.open { display: block; }
+  .contrato h4 { font-family: "Manrope", sans-serif; font-size: 0.92rem; font-weight: 700; margin-top: 1.5em; }
+  .contrato h4:first-child { margin-top: 0; }
+  .contrato .parte { color: var(--muted); }
+  .contrato .pendente { color: var(--accent2); font-weight: 600; }
+
+  /* ── SIGN CARD ── */
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 24px; margin-top: 14px; }
+  .card h3 { margin-top: 0; font-family: "JetBrains Mono", monospace; font-size: 0.7rem; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); }
+
+  label { display: block; font-size: 0.85rem; color: var(--muted); margin: 14px 0 6px; font-weight: 500; }
+  input[type=text] {
+    width: 100%; padding: 11px 13px; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 9px; color: var(--text); font-family: inherit; font-size: 0.95rem;
+  }
+  input[type=text]:focus { outline: none; border-color: var(--accent); }
+
+  .pad-box { margin-top: 6px; border: 1px dashed var(--border); border-radius: 10px; background: #fff; touch-action: none; }
+  canvas#pad { display: block; width: 100%; height: 180px; cursor: crosshair; }
+  .pad-actions { display: flex; gap: 10px; margin-top: 10px; }
+  button { font: inherit; font-weight: 600; border: none; border-radius: 9px; padding: 11px 18px; cursor: pointer; }
+  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+  .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #1A1A1A; font-family: "Manrope", sans-serif; font-weight: 700; }
+  .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .agree { display: flex; align-items: flex-start; gap: 10px; margin-top: 18px; font-size: 0.88rem; color: var(--muted); }
+  .agree input { margin-top: 3px; accent-color: var(--accent); }
+
+  .footer-actions { margin-top: 22px; }
+  .status { margin-top: 12px; font-size: 0.88rem; font-weight: 500; }
+  .status.ok { color: #8fd19e; }
+  .status.err { color: #e0837f; }
+  .status.pending { color: var(--accent2); }
+
+  .footer-note { text-align: center; color: var(--muted2); font-size: 0.8rem; margin-top: 50px; }
+
+  @media (max-width: 560px) {
+    .hero h1 { font-size: 1.9rem; }
+    .inv-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ─────────── GATE ─────────── -->
+<div id="gate">
+  <div class="gate-box">
+    <div class="gate-mark"></div>
+    <h2>Proposta reservada</h2>
+    <p>Digite o código de acesso enviado pela Morph para ver a proposta da Feerxs Studios.</p>
+    <input type="text" id="gate-code" placeholder="CÓDIGO DE ACESSO" autocomplete="off">
+    <button onclick="checkGate()">Entrar</button>
+    <div class="gate-err" id="gate-err"></div>
+  </div>
+</div>
+
+<!-- ─────────── MAIN ─────────── -->
+<div id="main">
+
+  <div class="hero">
+    <div class="hero-grid"></div>
+    <div class="hero-inner">
+      <div class="brand">
+        <img src="../assets/logo-horizontal-escuro.svg" alt="Morph" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'morph',style:'font-family:Manrope;font-weight:700;font-size:1.2rem'}))">
+      </div>
+      <p class="eyebrow">Proposta comercial</p>
+      <hr class="rule">
+      <h1>O sistema completo da <em>Feerxs Studios</em>, do zero</h1>
+      <p class="lead">Site institucional, agendamento online e o contrato que formaliza tudo isso — pensado pra você vender mais horário de cadeira e perder menos tempo com agenda no braço.</p>
+    </div>
+  </div>
+
+  <div class="wrap">
+
+    <section>
+      <p class="sec-label">O problema hoje</p>
+      <h2 class="sec-title">Agenda manual trava crescimento</h2>
+      <p class="sec-desc">Cliente que não consegue marcar horário rápido, marca em outro lugar. E sem um site, quem procura a Feerxs Studios antes de vir não acha nada que passe confiança.</p>
+    </section>
+
+    <section>
+      <p class="sec-label">O que vamos construir</p>
+      <h2 class="sec-title">Três entregas, um sistema só</h2>
+      <div class="deliv-grid">
+        <div class="deliv-card">
+          <div class="num">01</div>
+          <h3>Site institucional</h3>
+          <p>Apresenta a Feerxs Studios, os serviços e leva direto pro agendamento — a porta de entrada de quem te encontra pela primeira vez.</p>
+        </div>
+        <div class="deliv-card">
+          <div class="num">02</div>
+          <h3>Sistema de agendamento</h3>
+          <p>Dois lados, uma plataforma:</p>
+          <ul>
+            <li><strong style="color:#fff;">Área da empresa</strong> — gerenciar e acompanhar todos os agendamentos num painel só.</li>
+            <li><strong style="color:#fff;">Área do cliente</strong> — o cliente escolhe o horário sozinho, sem precisar te chamar no WhatsApp.</li>
+          </ul>
+        </div>
+        <div class="deliv-card">
+          <div class="num">03</div>
+          <h3>Contrato digital</h3>
+          <p>Este mesmo documento: assinatura eletrônica com validade jurídica e PDF pra download, sem precisar imprimir nada.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <p class="sec-label">Como funciona</p>
+      <h2 class="sec-title">Do sim ao sistema no ar</h2>
+      <div class="steps">
+        <div class="step"><div class="step-n">01</div><div><div class="step-t">Você assina abaixo</div><div class="step-d">Sem custo de implementação — a Morph já começa a construir.</div></div></div>
+        <div class="step"><div class="step-n">02</div><div><div class="step-t">A Morph constrói o site e o sistema</div><div class="step-d">Publicados no subdomínio feerxsstudios.gomorph.com.br.</div></div></div>
+        <div class="step"><div class="step-n">03</div><div><div class="step-t">Você aprova e começa a usar</div><div class="step-d">Área da empresa liberada pra gerenciar os agendamentos.</div></div></div>
+        <div class="step"><div class="step-n">04</div><div><div class="step-t">Manutenção contínua</div><div class="step-d">Hospedagem, segurança e correções ficam com a Morph, todo mês.</div></div></div>
+      </div>
+    </section>
+
+    <section>
+      <p class="sec-label">Investimento</p>
+      <h2 class="sec-title">Implementação sem custo. Só a manutenção.</h2>
+      <div class="inv-grid">
+        <div class="inv-card">
+          <div class="lbl">Mensal</div>
+          <div class="val">R$ 120<span>/mês</span></div>
+          <div class="obs">via Pix</div>
+        </div>
+        <div class="inv-card destaque">
+          <div class="inv-tag">Melhor custo</div>
+          <div class="lbl">Anual</div>
+          <div class="val">R$ 1.300<span>/ano</span></div>
+          <div class="obs">via Pix, à vista</div>
+        </div>
+      </div>
+      <p class="inv-note">Cartão de crédito soma a taxa da operadora ao valor do plano. Domínio próprio (opcional) fica por conta da Contratante — o subdomínio <strong>feerxsstudios.gomorph.com.br</strong> já vem incluso, sem custo.</p>
+    </section>
+
+    <section>
+      <p class="sec-label">Formalização</p>
+      <h2 class="sec-title">Contrato de prestação de serviços</h2>
+      <p class="sec-desc">Leia o contrato completo, preencha seus dados e assine no fim da página.</p>
+
+      <div class="contrato-toggle" id="contrato-toggle" onclick="toggleContrato()">
+        <span>Ler o contrato completo</span>
+        <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <div class="contrato" id="contrato-texto">
+        <p class="parte"><strong>Contratada:</strong> Morph, representada por <span class="pendente">[nome do responsável — a preencher pela Morph]</span><br>
+        CPF: 509.768.928-39</p>
+        <p class="parte"><strong>Contratante:</strong> Feerxs Studios<br>
+        CNPJ/CPF: <span class="pendente" id="ph-doc">[preencher ao lado]</span><br>
+        Representante: <span class="pendente" id="ph-nome">[preencher ao lado]</span></p>
+
+        <h4>Cláusula 1ª · Objeto</h4>
+        <p>1.1. A Contratada se compromete a desenvolver, hospedar e manter, para a Contratante, um sistema web composto por: a) site institucional da Feerxs Studios; b) sistema de agendamento online, com área da empresa (gerenciar e acompanhar agendamentos) e área do cliente (agendar horários); c) este contrato, em formato digital, com assinatura eletrônica e geração de PDF para download.</p>
+        <p>1.2. Alterações relevantes de escopo serão tratadas à parte, mediante acordo entre as partes.</p>
+
+        <h4>Cláusula 2ª · Domínio</h4>
+        <p>2.1. Fica disponibilizado, sem custo adicional, o subdomínio <strong>feerxsstudios.gomorph.com.br</strong> para o funcionamento do site e do sistema de agendamento.</p>
+        <p>2.2. Caso a Contratante prefira domínio próprio, a aquisição e o custo são de sua responsabilidade e não estão incluídos no valor mensal. A Contratada pode auxiliar na escolha e recomendar a melhor plataforma de registro, se solicitado.</p>
+
+        <h4>Cláusula 3ª · Investimento e Forma de Pagamento</h4>
+        <p>3.1. A implementação inicial (site e sistema de agendamento) é disponibilizada sem custo de desenvolvimento. A cobrança recai apenas sobre a manutenção mensal.</p>
+        <p>3.2. Planos: <strong>Mensal · R$ 120,00</strong> via Pix; <strong>Anual · R$ 1.300,00</strong> via Pix, à vista.</p>
+        <p>3.3. Pagamentos via cartão de crédito estão sujeitos à taxa da operadora, somada ao valor do plano.</p>
+        <p>3.4. A cobrança recorrente é processada através da plataforma InfinitePay.</p>
+        <p>3.5. O não pagamento na data de vencimento pode acarretar a suspensão do acesso ao sistema até a regularização.</p>
+
+        <h4>Cláusula 4ª · Reajuste de Valor</h4>
+        <p>4.1. Os valores da Cláusula 3ª consideram um uso padrão do sistema. Caso o volume de dados armazenados, o tráfego ou o uso geral superem o esperado, a Contratada poderá revisar o valor da manutenção mensal, mediante aviso prévio de, no mínimo, 30 dias.</p>
+
+        <h4>Cláusula 5ª · Prazo e Vigência</h4>
+        <p>5.1. Vigência por prazo indeterminado a partir da assinatura, com renovação automática conforme a periodicidade do plano escolhido.</p>
+
+        <h4>Cláusula 6ª · Rescisão</h4>
+        <p>6.1. Qualquer das partes pode rescindir mediante aviso prévio de 30 dias, por escrito.</p>
+        <p>6.2. Em caso de rescisão, a Contratante pode solicitar a exportação dos dados do sistema em prazo razoável, a combinar com a Contratada.</p>
+
+        <h4>Cláusula 7ª · Suporte e Manutenção</h4>
+        <p>7.1. Inclusos: hospedagem, atualizações de segurança e correção de falhas.</p>
+        <p>7.2. Não inclusos: novas funcionalidades fora do escopo original, orçadas separadamente.</p>
+
+        <h4>Cláusula 8ª · Assinatura Eletrônica</h4>
+        <p>8.1. As partes reconhecem a validade jurídica da assinatura eletrônica deste contrato, nos termos da MP nº 2.200-2/2001 e da Lei nº 14.063/2020, dispensando a assinatura física.</p>
+        <p>8.2. Ao assinar eletronicamente, a Contratante declara ter lido e concordado com todos os termos aqui descritos.</p>
+
+        <h4>Cláusula 9ª · Foro</h4>
+        <p>9.1. Fica eleito o foro da comarca de <span class="pendente">[preencher]</span> para dirimir dúvidas ou controvérsias oriundas deste contrato.</p>
+      </div>
+
+      <div class="card">
+        <h3>Seus dados</h3>
+        <label for="nome">Nome completo</label>
+        <input type="text" id="nome" placeholder="Nome de quem está assinando">
+        <label for="doc">CPF ou CNPJ</label>
+        <input type="text" id="doc" placeholder="000.000.000-00">
+      </div>
+
+      <div class="card">
+        <h3>Assinatura</h3>
+        <p style="color:var(--muted); font-size:0.85rem; margin-top:-6px;">Desenhe sua assinatura abaixo — com o dedo no celular ou com o mouse no computador.</p>
+        <div class="pad-box"><canvas id="pad"></canvas></div>
+        <div class="pad-actions"><button class="btn-ghost" id="limpar">Limpar</button></div>
+
+        <div class="agree">
+          <input type="checkbox" id="concordo">
+          <label for="concordo" style="margin:0;">Li e concordo com todos os termos do contrato acima.</label>
+        </div>
+
+        <div class="footer-actions">
+          <button class="btn-primary" id="assinar" disabled>Assinar e baixar PDF</button>
+          <div class="status" id="status"></div>
+        </div>
+      </div>
+    </section>
+
+    <p class="footer-note">morph.gomorph.com.br · contato@gomorph.com.br</p>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+// ⚙️ CONFIG
+// ══════════════════════════════════════════════
+const ACCESS_CODE   = 'feerxs2026';
+const SUPABASE_URL  = 'https://kkymjgabiszksdqhdiby.supabase.co';
+const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtreW1qZ2FiaXN6a3NkcWhkaWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4NTgyMDEsImV4cCI6MjA5ODQzNDIwMX0.04_GXqvtAHWWh3HaxVOHZr9J94XTK6AHfYxIZlx3_YI';
+const PROPOSTA_SLUG = 'feerxsstudios';
+// ══════════════════════════════════════════════
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ── GATE ──
+function checkGate() {
+  const input = document.getElementById('gate-code');
+  const err = document.getElementById('gate-err');
+  if (input.value.trim().toLowerCase() === ACCESS_CODE.toLowerCase()) {
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('main').style.display = 'block';
+    sessionStorage.setItem('proposta-' + PROPOSTA_SLUG, '1');
+  } else {
+    err.textContent = 'Código incorreto. Confira com a Morph.';
+  }
+}
+document.getElementById('gate-code').addEventListener('keydown', e => { if (e.key === 'Enter') checkGate(); });
+if (sessionStorage.getItem('proposta-' + PROPOSTA_SLUG) === '1') {
+  document.getElementById('gate').style.display = 'none';
+  document.getElementById('main').style.display = 'block';
+}
+
+// ── CONTRATO TOGGLE ──
+function toggleContrato() {
+  document.getElementById('contrato-toggle').classList.toggle('open');
+  document.getElementById('contrato-texto').classList.toggle('open');
+}
+
+// ── ASSINATURA ──
+(function () {
+  const canvas = document.getElementById('pad');
+  const ctx = canvas.getContext('2d');
+  let drawing = false, hasSignature = false, last = null;
+
+  function resizeCanvas() {
+    const ratio = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * ratio;
+    canvas.height = rect.height * ratio;
+    ctx.scale(ratio, ratio);
+    drawBaseline(rect.width, rect.height);
+    ctx.lineWidth = 2.2;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#1a1a1a';
+  }
+  function drawBaseline(w, h) {
+    ctx.save();
+    ctx.strokeStyle = '#d9d9d9';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(20, h * 0.68);
+    ctx.lineTo(w - 20, h * 0.68);
+    ctx.stroke();
+    ctx.fillStyle = '#b8b8b8';
+    ctx.font = '11px Inter, sans-serif';
+    ctx.fillText('assine aqui', 20, h * 0.68 + 16);
+    ctx.restore();
+  }
+  resizeCanvas();
+  window.addEventListener('resize', () => {
+    const data = hasSignature ? canvas.toDataURL() : null;
+    resizeCanvas();
+    if (data) {
+      const img = new Image();
+      img.onload = () => ctx.drawImage(img, 0, 0, canvas.width / (window.devicePixelRatio||1), canvas.height / (window.devicePixelRatio||1));
+      img.src = data;
+    }
+  });
+
+  function pos(e) { const rect = canvas.getBoundingClientRect(); return { x: e.clientX - rect.left, y: e.clientY - rect.top }; }
+  function start(e) { e.preventDefault(); canvas.setPointerCapture(e.pointerId); drawing = true; last = pos(e); }
+  function move(e) {
+    if (!drawing) return;
+    e.preventDefault();
+    const p = pos(e);
+    ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+    last = p; hasSignature = true; updateButton();
+  }
+  function end() { drawing = false; }
+
+  canvas.addEventListener('pointerdown', start);
+  canvas.addEventListener('pointermove', move);
+  canvas.addEventListener('pointerup', end);
+  canvas.addEventListener('pointercancel', end);
+
+  document.getElementById('limpar').addEventListener('click', () => {
+    const rect = canvas.getBoundingClientRect();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawBaseline(rect.width, rect.height);
+    hasSignature = false; updateButton();
+  });
+
+  const nome = document.getElementById('nome');
+  const doc = document.getElementById('doc');
+  const concordo = document.getElementById('concordo');
+  const assinarBtn = document.getElementById('assinar');
+  const statusEl = document.getElementById('status');
+
+  function updateButton() {
+    assinarBtn.disabled = !(hasSignature && nome.value.trim() && doc.value.trim() && concordo.checked);
+  }
+
+  const phNome = document.getElementById('ph-nome');
+  const phDoc = document.getElementById('ph-doc');
+  function syncContrato() {
+    phNome.textContent = nome.value.trim() || '[preencher ao lado]';
+    phDoc.textContent = doc.value.trim() || '[preencher ao lado]';
+  }
+  [nome, doc].forEach(el => el.addEventListener('input', () => { syncContrato(); updateButton(); }));
+  concordo.addEventListener('change', updateButton);
+
+  assinarBtn.addEventListener('click', async () => {
+    statusEl.textContent = 'Gerando PDF...';
+    statusEl.className = 'status pending';
+    try {
+      const { jsPDF } = window.jspdf;
+      const doc_ = new jsPDF({ unit: 'pt', format: 'a4' });
+      const margin = 48;
+      const pageWidth = doc_.internal.pageSize.getWidth();
+      const maxWidth = pageWidth - margin * 2;
+      let y = margin;
+
+      doc_.setFont('helvetica', 'bold');
+      doc_.setFontSize(14);
+      doc_.text('Contrato de Prestação de Serviços · Feerxs Studios × Morph', margin, y);
+      y += 26;
+
+      doc_.setFont('helvetica', 'normal');
+      doc_.setFontSize(10);
+      const contratoTexto = document.getElementById('contrato-texto').innerText;
+      const linhas = doc_.splitTextToSize(contratoTexto, maxWidth);
+      linhas.forEach(linha => {
+        if (y > doc_.internal.pageSize.getHeight() - margin) { doc_.addPage(); y = margin; }
+        doc_.text(linha, margin, y); y += 13;
+      });
+
+      if (y > doc_.internal.pageSize.getHeight() - 220) { doc_.addPage(); y = margin; }
+      y += 20;
+      doc_.setFont('helvetica', 'bold'); doc_.setFontSize(11);
+      doc_.text('Assinatura eletrônica', margin, y); y += 18;
+      doc_.setFont('helvetica', 'normal'); doc_.setFontSize(10);
+      doc_.text('Nome: ' + nome.value.trim(), margin, y); y += 14;
+      doc_.text('CPF/CNPJ: ' + doc.value.trim(), margin, y); y += 14;
+      const dataAssinatura = new Date();
+      doc_.text('Data e hora: ' + dataAssinatura.toLocaleString('pt-BR'), margin, y); y += 16;
+
+      const assinaturaImg = canvas.toDataURL('image/png');
+      doc_.addImage(assinaturaImg, 'PNG', margin, y, 220, 90);
+
+      const nomeArquivo = 'contrato-feerxsstudios-' + nome.value.trim().replace(/\s+/g, '-').toLowerCase() + '.pdf';
+      doc_.save(nomeArquivo);
+
+      // salva o registro no Supabase (tabela "propostas" — ver supabase/propostas.sql)
+      statusEl.textContent = 'PDF baixado. Salvando registro...';
+      const pdfBase64 = doc_.output('datauristring');
+      const { error: dbErr } = await sb.from('propostas').insert({
+        slug: PROPOSTA_SLUG,
+        cliente: 'Feerxs Studios',
+        assinante_nome: nome.value.trim(),
+        assinante_doc: doc.value.trim(),
+        assinatura_png: assinaturaImg,
+        pdf_base64: pdfBase64,
+        assinado_em: dataAssinatura.toISOString(),
+      });
+
+      if (dbErr) {
+        console.error(dbErr);
+        statusEl.textContent = 'Contrato assinado e PDF baixado. (Registro não salvo no servidor — avise a Morph: ' + dbErr.message + ')';
+        statusEl.className = 'status err';
+      } else {
+        statusEl.textContent = 'Contrato assinado, PDF baixado e registro salvo com a Morph.';
+        statusEl.className = 'status ok';
+      }
+    } catch (err) {
+      statusEl.textContent = 'Erro ao gerar o PDF: ' + err.message;
+      statusEl.className = 'status err';
+    }
+  });
+})();
+</script>
+</body>
+</html>

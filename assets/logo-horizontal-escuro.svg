@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 160" width="520" height="160">
+  <defs>
+    <linearGradient id="mg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E8490F"/>
+      <stop offset="100%" stop-color="#F5A623"/>
+    </linearGradient>
+  </defs>
+  <rect x="28" y="36" width="88" height="88" rx="13" transform="rotate(45 72 80)" fill="url(#mg)"/>
+  <text x="158" y="116" font-family="Manrope, Arial, sans-serif" font-size="96" font-weight="800" letter-spacing="-2" fill="#FFFFFF">morph</text>
+</svg>
