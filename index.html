@@ -325,6 +325,7 @@ tr:hover .td-actions{opacity:1;}
     <div class="nav-item" data-page="clientes" onclick="goto('clientes',this)"><i data-lucide="building-2"></i>Clientes</div>
     <div class="nav-item" data-page="contatos" onclick="goto('contatos',this)"><i data-lucide="contact"></i>Contatos</div>
     <div class="nav-item" data-page="negocios" onclick="goto('negocios',this)"><i data-lucide="kanban"></i>Negócios</div>
+    <div class="nav-item" data-page="propostas" onclick="goto('propostas',this)"><i data-lucide="file-check-2"></i>Propostas</div>
     <div class="nav-item" data-page="tarefas" onclick="goto('tarefas',this)"><i data-lucide="circle-check"></i>Tarefas</div>
     <div class="nav-sec">Empresa</div>
     <div class="nav-item" data-page="financeiro" onclick="goto('financeiro',this)"><i data-lucide="trending-up"></i>Financeiro</div>
@@ -470,7 +471,7 @@ document.addEventListener('keydown', e => {
 // ────────────────────────────────────────────
 const PAGE_TITLES = {
   dashboard: 'Dashboard', clientes: 'Clientes', contatos: 'Contatos',
-  negocios: 'Negócios', tarefas: 'Tarefas', financeiro: 'Financeiro',
+  negocios: 'Negócios', propostas: 'Propostas', tarefas: 'Tarefas', financeiro: 'Financeiro',
   atividades: 'Atividades', config: 'Configurações',
 };
 const PAGE_ACTIONS = {
@@ -497,7 +498,7 @@ async function goto(page, el) {
 }
 
 async function renderPage(page) {
-  const fns = { dashboard, clientes, contatos, negocios, tarefas, financeiro, atividades, config };
+  const fns = { dashboard, clientes, contatos, negocios, propostas, tarefas, financeiro, atividades, config };
   if (fns[page]) await fns[page]();
 }
 
@@ -955,6 +956,58 @@ async function changeNegStatus(id, status) {
 }
 
 async function deleteNegocio(id){if(!confirm('Remover negócio?'))return;await sb.from('negocios').delete().eq('id',id);closeModal();toast('Removido.');await negocios();}
+
+// ────────────────────────────────────────────
+// PROPOSTAS — assinadas pelas páginas públicas em /propostas
+// ────────────────────────────────────────────
+async function propostas() {
+  const { data, error } = await sb.from('propostas')
+    .select('id,slug,cliente,assinante_nome,assinante_doc,assinado_em')
+    .order('assinado_em', { ascending: false });
+
+  if (error) {
+    set('page-content', `<div class="empty"><i data-lucide="file-check-2"></i><p>Não foi possível carregar as propostas.<br>${error.message}${error.message.includes('propostas')?'<br><br>Rode supabase/propostas.sql no SQL Editor do Supabase pra criar a tabela.':''}</p></div>`);
+    lucide.createIcons();
+    return;
+  }
+
+  set('page-content', `
+  <div class="tbl-wrap">
+    ${(data && data.length)
+      ? `<table><thead><tr><th>Cliente</th><th>Assinante</th><th>Documento</th><th>Assinado em</th><th></th></tr></thead><tbody>
+        ${data.map(p => `<tr>
+          <td><div class="td-name">${p.cliente}</div><div class="fin-meta">${p.slug}</div></td>
+          <td>${p.assinante_nome}</td>
+          <td>${p.assinante_doc}</td>
+          <td>${fmtDatetime(p.assinado_em)}</td>
+          <td><div class="td-actions" style="opacity:1;">
+            <button class="btn btn-gh btn-xs" onclick="verAssinaturaProposta('${p.id}')"><i data-lucide="image"></i>Assinatura</button>
+            <button class="btn btn-p btn-xs" onclick="baixarPdfProposta('${p.id}','${p.assinante_nome.replace(/'/g,"")}')"><i data-lucide="download"></i>PDF</button>
+          </div></td>
+        </tr>`).join('')}
+      </tbody></table>`
+      : '<div class="empty"><i data-lucide="file-check-2"></i><p>Nenhuma proposta assinada ainda</p></div>'
+    }
+  </div>`);
+  lucide.createIcons();
+}
+
+async function baixarPdfProposta(id, nomeArquivo) {
+  toast('Baixando PDF...');
+  const { data, error } = await sb.from('propostas').select('pdf_base64').eq('id', id).single();
+  if (error) { toast(error.message, false); return; }
+  const a = document.createElement('a');
+  a.href = data.pdf_base64;
+  a.download = 'contrato-' + nomeArquivo.trim().replace(/\s+/g, '-').toLowerCase() + '.pdf';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+async function verAssinaturaProposta(id) {
+  const { data, error } = await sb.from('propostas').select('assinatura_png').eq('id', id).single();
+  if (error) { toast(error.message, false); return; }
+  openModal('Assinatura', `<div style="background:#fff;border-radius:10px;padding:12px;"><img src="${data.assinatura_png}" style="width:100%;display:block;"></div>`,
+    `<button class="btn btn-gh" onclick="closeModal()">Fechar</button>`);
+}
 
 // ────────────────────────────────────────────
 // TAREFAS — KANBAN
