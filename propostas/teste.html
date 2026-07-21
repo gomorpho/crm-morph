@@ -143,8 +143,10 @@
   }
   input[type=text]:focus { outline: none; border-color: var(--accent); }
 
-  .pad-box { margin-top: 6px; border: 1px dashed var(--border); border-radius: 10px; background: #fff; touch-action: none; }
-  canvas#pad { display: block; width: 100%; height: 180px; cursor: crosshair; }
+  .pad-box { position: relative; margin-top: 6px; border: 1px dashed var(--border); border-radius: 10px; background: #fff; touch-action: none; overflow: hidden; }
+  .pad-hint-line { position: absolute; left: 20px; right: 20px; top: 68%; height: 1px; background: #d9d9d9; pointer-events: none; }
+  .pad-hint-label { position: absolute; left: 20px; top: calc(68% + 4px); font-size: 11px; font-family: "Inter", sans-serif; color: #b8b8b8; pointer-events: none; }
+  canvas#pad { position: relative; z-index: 1; display: block; width: 100%; height: 180px; cursor: crosshair; background: transparent; }
   .pad-actions { display: flex; gap: 10px; margin-top: 10px; }
   button { font: inherit; font-weight: 600; border: none; border-radius: 9px; padding: 11px 18px; cursor: pointer; }
   .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--muted); }
@@ -326,7 +328,7 @@
       <div class="card">
         <h3>Assinatura</h3>
         <p style="color:var(--muted); font-size:0.85rem; margin-top:-6px;">Desenhe sua assinatura abaixo, com o dedo no celular ou com o mouse no computador.</p>
-        <div class="pad-box"><canvas id="pad"></canvas></div>
+        <div class="pad-box"><div class="pad-hint-line"></div><div class="pad-hint-label">assine aqui</div><canvas id="pad"></canvas></div>
         <div class="pad-actions"><button class="btn-ghost" id="limpar">Limpar</button></div>
 
         <div class="agree">
@@ -393,23 +395,9 @@ window.initSignaturePad = function () {
     canvas.width = rect.width * ratio;
     canvas.height = rect.height * ratio;
     ctx.scale(ratio, ratio);
-    drawBaseline(rect.width, rect.height);
     ctx.lineWidth = 2.2;
     ctx.lineCap = 'round';
     ctx.strokeStyle = '#1a1a1a';
-  }
-  function drawBaseline(w, h) {
-    ctx.save();
-    ctx.strokeStyle = '#d9d9d9';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(20, h * 0.68);
-    ctx.lineTo(w - 20, h * 0.68);
-    ctx.stroke();
-    ctx.fillStyle = '#b8b8b8';
-    ctx.font = '11px Inter, sans-serif';
-    ctx.fillText('assine aqui', 20, h * 0.68 + 16);
-    ctx.restore();
   }
   resizeCanvas();
   window.addEventListener('resize', () => {
@@ -439,9 +427,7 @@ window.initSignaturePad = function () {
   canvas.addEventListener('pointercancel', end);
 
   document.getElementById('limpar').addEventListener('click', () => {
-    const rect = canvas.getBoundingClientRect();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawBaseline(rect.width, rect.height);
     hasSignature = false; updateButton(); saveDraft();
   });
 
