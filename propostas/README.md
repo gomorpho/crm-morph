@@ -13,11 +13,23 @@ no servidor.
 
 ## feerxsstudios.html
 
-- **Código de acesso:** `feerxs2026` — passa pro cliente por fora (WhatsApp,
+- **Código de acesso:** `feerxs2026`, passa pro cliente por fora (WhatsApp,
   não pelo mesmo canal do link) antes de mandar o link da proposta. Pra
   trocar, edita a constante `ACCESS_CODE` no `<script>` do arquivo.
 - **Link:** `propostas/feerxsstudios.html` (GitHub Pages ou onde o repo
   estiver publicado)
 - Depois de assinado, o registro completo (nome, documento, imagem da
   assinatura e PDF em base64) fica salvo na tabela `propostas` do
-  Supabase — visível só pra quem loga no CRM.
+  Supabase, visível só pra quem loga no CRM.
+
+## teste.html
+
+Cópia da página real só pra testar o fluxo (preencher, assinar, baixar
+PDF, salvar no banco) sem misturar com os dados de um cliente de
+verdade.
+
+- **Código de acesso:** `teste123`
+- **Link:** `propostas/teste.html`
+- Assinaturas de teste caem na mesma tabela `propostas`, mas marcadas
+  com `slug: 'teste'` e `cliente: 'TESTE (ignorar)'`, fáceis de filtrar
+  ou apagar depois.

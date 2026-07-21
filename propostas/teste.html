@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Proposta · Feerxs Studios × Morph</title>
+<title>[TESTE] Proposta · Morph</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Playfair+Display:ital@1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -174,8 +174,8 @@
 <div id="gate">
   <div class="gate-box">
     <div class="gate-mark"></div>
-    <h2>Proposta reservada</h2>
-    <p>Digite o código de acesso enviado pela Morph para ver a proposta da Feerxs Studios.</p>
+    <h2>Proposta reservada [TESTE]</h2>
+    <p>Página só pra testar o fluxo (preencher, assinar, gerar PDF). Não é uma proposta real.</p>
     <input type="text" id="gate-code" placeholder="CÓDIGO DE ACESSO" autocomplete="off">
     <button onclick="checkGate()">Entrar</button>
     <div class="gate-err" id="gate-err"></div>
@@ -191,9 +191,9 @@
       <div class="brand">
         <img src="../assets/logo-horizontal-escuro.svg" alt="Morph" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'morph',style:'font-family:Manrope;font-weight:700;font-size:1.2rem'}))">
       </div>
-      <p class="eyebrow">Proposta comercial</p>
+      <p class="eyebrow">Modo teste, não é uma proposta real</p>
       <hr class="rule">
-      <h1>O sistema completo da <em>Feerxs Studios</em>, do zero</h1>
+      <h1>Página de <em>teste</em> do modelo de proposta</h1>
       <p class="lead">Site institucional, agendamento online e o contrato que formaliza tudo isso, pensado pra você vender mais horário de cadeira e perder menos tempo com agenda no braço.</p>
     </div>
   </div>
@@ -349,10 +349,10 @@
 // ══════════════════════════════════════════════
 // ⚙️ CONFIG
 // ══════════════════════════════════════════════
-const ACCESS_CODE   = 'feerxs2026';
+const ACCESS_CODE   = 'teste123';
 const SUPABASE_URL  = 'https://kkymjgabiszksdqhdiby.supabase.co';
 const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtreW1qZ2FiaXN6a3NkcWhkaWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4NTgyMDEsImV4cCI6MjA5ODQzNDIwMX0.04_GXqvtAHWWh3HaxVOHZr9J94XTK6AHfYxIZlx3_YI';
-const PROPOSTA_SLUG = 'feerxsstudios';
+const PROPOSTA_SLUG = 'teste';
 // ══════════════════════════════════════════════
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -510,7 +510,7 @@ window.initSignaturePad = function () {
       const pdfBase64 = doc_.output('datauristring');
       const { error: dbErr } = await sb.from('propostas').insert({
         slug: PROPOSTA_SLUG,
-        cliente: 'Feerxs Studios',
+        cliente: 'TESTE (ignorar)',
         assinante_nome: nome.value.trim(),
         assinante_doc: doc.value.trim(),
         assinatura_png: assinaturaImg,
